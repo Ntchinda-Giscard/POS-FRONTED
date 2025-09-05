@@ -122,6 +122,28 @@ export async function fetchTiers(customer_code: string) {
   }
 }
 
+export async function fetchAdresseLivraison(customer_code: string) {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/adresse/livraison?code_client=${customer_code}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) throw new Error("Failed to fetch delivery addresses");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error(error);
+    console.warn(
+      "[v0] API not available, using mock data for delivery addresses"
+    );
+  }
+}
+
 export async function fetchCommandType() {
   try {
     const response = await fetch(`${API_BASE_URL}/command/type`, {

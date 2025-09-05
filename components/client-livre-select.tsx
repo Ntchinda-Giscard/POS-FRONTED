@@ -1,13 +1,4 @@
 import React, { useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { fetchClients, fetchTiers } from "@/lib/api";
 import { Label } from "./ui/label";
 import useClientStore from "@/stores/client-store";

@@ -1,9 +1,17 @@
 import React, { useEffect } from "react";
-import { fetchClients, fetchTiers } from "@/lib/api";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { fetchAdresseLivraison, fetchClients } from "@/lib/api";
 import { Label } from "./ui/label";
 import useClientStore from "@/stores/client-store";
-import useTierStore from "@/stores/tier-store";
-import { Input } from "./ui/input";
+import useSiteLivraisonStore from "@/stores/livraison-store";
 
 type Client = {
   code: string;
@@ -14,36 +22,64 @@ const SiteLivraison = () => {
   const selectedClientCode = useClientStore(
     (state) => state.selectedClientCode
   );
-
-  const { selectTierCode, setTierCode } = useTierStore();
+  const {
+    selectedadressLivraison,
+    selectedadressLivraisonCode,
+    addressLivraison,
+    setSelectedadressLivraison,
+    setSelectedadressLivraisonCode,
+    setadressLivraisons,
+  } = useSiteLivraisonStore();
 
   useEffect(() => {
-    console.log("Selected client code changed:", selectedClientCode);
-    const loadingClients = async () => {
+    const loadingAdresseLivraison = async () => {
       try {
-        const response = await fetchTiers(selectedClientCode);
-        console.log("Fetched tiers:", response);
-        setTierCode(response?.data.code || "");
+        const response = await fetchAdresseLivraison(selectedClientCode);
+
         if (response && response.success) {
-          console.log("Clients loaded:", response.data);
+          setadressLivraisons(response.data);
+          console.log("Addresse loaded:", response.data);
         }
       } catch (error) {
-        console.error("Error loading clients:", error);
+        console.error("Error loading adresses:", error);
       }
     };
-    loadingClients();
-  }, [setTierCode]);
+
+    loadingAdresseLivraison();
+  }, [setadressLivraisons, selectedClientCode]);
+
+  const handleClientSelect = (value: string) => {
+    setSelectedadressLivraisonCode(value);
+    console.log("Selected client code:", value);
+    console.log(
+      "Selected client object:",
+      useClientStore.getState().selectedClient
+    );
+  };
 
   return (
     <div className="flex flex-col">
       <Label className="mb-2 block">Adresse livraison *</Label>
-      <Input
-        disabled
-        className="w-[280px]"
-        type="email"
-        placeholder="Email"
-        value={selectTierCode}
-      />
+
+      <Select
+        onValueChange={handleClientSelect}
+        value={selectedadressLivraisonCode}
+      >
+        <SelectTrigger className="w-[280px]">
+          <SelectValue placeholder="Choisir un client" />
+        </SelectTrigger>
+
+        <SelectContent>
+          <SelectGroup>
+            <SelectLabel>Clients</SelectLabel>
+            {addressLivraison?.map((addresse) => (
+              <SelectItem key={addresse.code} value={addresse.code}>
+                ({addresse.code})
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
     </div>
   );
 };

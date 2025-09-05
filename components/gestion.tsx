@@ -2,6 +2,7 @@ import React from "react";
 import { Separator } from "./ui/separator";
 import ClientLivreSelect from "./client-livre-select";
 import PayeurSelect from "./payeur-select";
+import SiteLivraison from "./site-livraison";
 
 export default function GestionCommande() {
   return (
@@ -11,6 +12,7 @@ export default function GestionCommande() {
       <div className="flex flex-row gap-4">
         <ClientLivreSelect />
         <PayeurSelect />
+        <SiteLivraison />
       </div>
     </div>
   );

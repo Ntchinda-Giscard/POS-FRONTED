@@ -10,7 +10,7 @@ type Client = {
   name: string;
 };
 
-const PayeurSelect = () => {
+const SiteLivraison = () => {
   const selectedClientCode = useClientStore(
     (state) => state.selectedClientCode
   );
@@ -36,7 +36,7 @@ const PayeurSelect = () => {
 
   return (
     <div className="flex flex-col">
-      <Label className="mb-2 block">Client facture *</Label>
+      <Label className="mb-2 block">Adresse livraison *</Label>
       <Input
         disabled
         className="w-[280px]"
@@ -48,4 +48,4 @@ const PayeurSelect = () => {
   );
 };
 
-export default PayeurSelect;
+export default SiteLivraison;

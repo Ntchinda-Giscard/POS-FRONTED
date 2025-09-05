@@ -8,9 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchClients } from "@/lib/api";
+import { fetchClients, fetchTiers } from "@/lib/api";
 import { Label } from "./ui/label";
 import useClientStore from "@/stores/client-store";
+import useTierStore from "@/stores/tier-store";
+import { Input } from "./ui/input";
 
 type Client = {
   code: string;
@@ -18,67 +20,39 @@ type Client = {
 };
 
 const ClientLivreSelect = () => {
-  const {
-    clients,
-    selectedClientCode,
-    selectedClient,
-    setClients,
-    setSelectedClientCode,
-  } = useClientStore();
+  const selectedClientCode = useClientStore(
+    (state) => state.selectedClientCode
+  );
+
+  const { selectTierCode, setTierCode } = useTierStore();
 
   useEffect(() => {
+    console.log("Selected client code changed:", selectedClientCode);
     const loadingClients = async () => {
       try {
-        const response = await fetchClients();
-
+        const response = await fetchTiers(selectedClientCode);
+        console.log("Fetched tiers:", response);
+        setTierCode(response?.data.code || "");
         if (response && response.success) {
-          setClients(response.data);
           console.log("Clients loaded:", response.data);
         }
       } catch (error) {
         console.error("Error loading clients:", error);
       }
     };
-
     loadingClients();
-  }, [setClients]);
-
-  const handleClientSelect = (value: string) => {
-    setSelectedClientCode(value);
-    console.log("Selected client code:", value);
-    console.log(
-      "Selected client object:",
-      useClientStore.getState().selectedClient
-    );
-  };
+  }, [setTierCode]);
 
   return (
     <div className="flex flex-col">
-      <Label className="mb-2 block">Client facture*</Label>
-
-      <Select onValueChange={handleClientSelect} value={selectedClientCode}>
-        <SelectTrigger className="w-[280px]">
-          <SelectValue placeholder="Choisir un client" />
-        </SelectTrigger>
-
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Clients</SelectLabel>
-            {clients.map((client) => (
-              <SelectItem key={client.code} value={client.code}>
-                {client.name} ({client.code})
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      {/* Debug info - remove in production */}
-      {selectedClient && (
-        <div className="mt-2 text-sm text-gray-600">
-          Selected: {selectedClient.name} ({selectedClient.code})
-        </div>
-      )}
+      <Label className="mb-2 block">Tiers Payeur *</Label>
+      <Input
+        disabled
+        className="w-[280px]"
+        type="email"
+        placeholder="Email"
+        value={selectTierCode}
+      />
     </div>
   );
 };

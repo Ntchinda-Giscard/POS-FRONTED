@@ -179,7 +179,7 @@ export async function searchProducts(
     const filteredProducts = mockProducts.filter(
       (product) =>
         product.name.toLowerCase().includes(query.toLowerCase()) ||
-        product.barcode.includes(query)
+        product.barcode?.includes(query)
     );
     return {
       success: true,
@@ -384,10 +384,33 @@ export async function finalizeOrder(
       subtotal: 0,
       tax: 0,
       total: 0,
-      status: "completed",
+      status: "confirmed",
       priority: "normal",
       createdAt: new Date(),
       updatedAt: new Date(),
+      customer: {
+        id: "mock-customer",
+        name: "Mock Customer",
+        email: "mock@customer.com",
+        phone: "0000000000",
+        address: "Mock Address",
+        customerCode: "",
+        creditLimit: 0,
+        paymentTerms: "",
+        isActive: false,
+        totalPurchases: 0,
+      },
+      deliveryLocation: {
+        id: "mock-location",
+        name: "Mock Location",
+        address: "Mock Address",
+        isActive: false,
+        code: "",
+        isDefault: false,
+      },
+      discount: 0,
+      createdBy: "",
+      modifications: [],
     };
     return {
       success: true,

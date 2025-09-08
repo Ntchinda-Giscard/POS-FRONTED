@@ -14,6 +14,8 @@ export default function GestionCommande() {
         <PayeurSelect />
         <SiteLivraison />
       </div>
+      <h2 className="mt-5"> Gestion et taxes</h2>
+      <Separator className="my-4" />
     </div>
   );
 }

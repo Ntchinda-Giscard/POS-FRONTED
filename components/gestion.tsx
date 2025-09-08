@@ -3,6 +3,7 @@ import { Separator } from "./ui/separator";
 import ClientLivreSelect from "./client-livre-select";
 import PayeurSelect from "./payeur-select";
 import SiteLivraison from "./site-livraison";
+import TaxeRegime from "./taxe-regime";
 
 export default function GestionCommande() {
   return (
@@ -16,6 +17,7 @@ export default function GestionCommande() {
       </div>
       <h2 className="mt-5"> Gestion et taxes</h2>
       <Separator className="my-4" />
+      <TaxeRegime />
     </div>
   );
 }

@@ -13,13 +13,48 @@ import {
 } from "./ui/select";
 import { DateTimePicker } from "./date-time-picker";
 import { DateNumberPicker } from "./date-delay-picker";
+import useModeLivraisonStore from "@/stores/mode-livraison-store";
+import { fetchModeLivraison } from "@/lib/api";
 
 export default function Livraison() {
   const [selectedPriority, setSelectedPriority] = React.useState<string>("");
+  const {
+    modeLivraison,
+    selectedModeLivraisonCode,
+    selectedModeLivraison,
+    setModeLivraison,
+    setselectedModeLivraisonCode,
+  } = useModeLivraisonStore();
+
+  React.useEffect(() => {
+    const loadingClients = async () => {
+      try {
+        const response = await fetchModeLivraison();
+
+        if (response && response.success) {
+          setModeLivraison(response.data);
+          console.log("Clients loaded:", response.data);
+        }
+      } catch (error) {
+        console.error("Error loading clients:", error);
+      }
+    };
+
+    loadingClients();
+  }, [setModeLivraison]);
 
   const handlePriority = (value: string) => {
     console.log("Selected priority:", value);
     setSelectedPriority(value);
+  };
+
+  const handleModeLivraison = (value: string) => {
+    setselectedModeLivraisonCode(value);
+    console.log("Selected client code:", value);
+    console.log(
+      "Selected client object:",
+      useModeLivraisonStore.getState().selectedModeLivraisonCode
+    );
   };
 
   const priority = [
@@ -110,20 +145,23 @@ export default function Livraison() {
             </SelectContent>
           </Select>
         </div>
-
+        {/* Mode de livraison */}
         <div className="flex flex-col">
           <Label className="mb-2 block">Mode livraison</Label>
-          <Select onValueChange={handlePriority} value={selectedPriority}>
+          <Select
+            onValueChange={handleModeLivraison}
+            value={selectedModeLivraisonCode}
+          >
             <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Choisir une priorité" />
+              <SelectValue placeholder="Choisir un mode de livraison" />
             </SelectTrigger>
 
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>mode livraison</SelectLabel>
-                {tour.map((p) => (
+                {modeLivraison.map((p) => (
                   <SelectItem key={p.code} value={p.code}>
-                    {p.name}
+                    {p.code}
                   </SelectItem>
                 ))}
               </SelectGroup>

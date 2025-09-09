@@ -243,6 +243,48 @@ export async function fetchTaxRegimes(
   }
 }
 
+//API pour les mode de livraison
+export async function fetchModeLivraison() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/livraison/modelivraison`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) throw new Error("Failed to fetch delivery addresses");
+    console.log("Fetch mode livraison response:", response);
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error(error);
+    console.warn(
+      "[v0] API not available, using mock data for delivery addresses"
+    );
+  }
+}
+
+//API pour les tranzporteur
+export async function fetchTransporteur() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/livraison/transporteur`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) throw new Error("Failed to fetch delivery addresses");
+    console.log("Fetch mode livraison response:", response);
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error(error);
+    console.warn(
+      "[v0] API not available, using mock data for delivery addresses"
+    );
+  }
+}
+
 // API pour les devise
 export async function fetchCommandCurrency(
   customer_code: string

@@ -14,7 +14,8 @@ import {
 import { DateTimePicker } from "./date-time-picker";
 import { DateNumberPicker } from "./date-delay-picker";
 import useModeLivraisonStore from "@/stores/mode-livraison-store";
-import { fetchModeLivraison } from "@/lib/api";
+import { fetchModeLivraison, fetchTransporteur } from "@/lib/api";
+import useTransporteurStore from "@/stores/transporteur";
 
 export default function Livraison() {
   const [selectedPriority, setSelectedPriority] = React.useState<string>("");
@@ -25,6 +26,14 @@ export default function Livraison() {
     setModeLivraison,
     setselectedModeLivraisonCode,
   } = useModeLivraisonStore();
+
+  const {
+    transporteur,
+    selectedTransporteurCode,
+    selectedTransporteur,
+    setTransporteur,
+    setselectedTransporteurCode,
+  } = useTransporteurStore();
 
   React.useEffect(() => {
     const loadingClients = async () => {
@@ -40,7 +49,21 @@ export default function Livraison() {
       }
     };
 
+    const loadTransporteur = async () => {
+      try {
+        const response = await fetchTransporteur();
+
+        if (response && response.success) {
+          setModeLivraison(response.data);
+          console.log("Clients loaded:", response.data);
+        }
+      } catch (error) {
+        console.error("Error loading clients:", error);
+      }
+    };
+
     loadingClients();
+    loadTransporteur();
   }, [setModeLivraison]);
 
   const handlePriority = (value: string) => {
@@ -50,6 +73,15 @@ export default function Livraison() {
 
   const handleModeLivraison = (value: string) => {
     setselectedModeLivraisonCode(value);
+    console.log("Selected client code:", value);
+    console.log(
+      "Selected client object:",
+      useTransporteurStore.getState().selectedTransporteur
+    );
+  };
+
+  const handleTransporteur = (value: string) => {
+    setselectedTransporteurCode(value);
     console.log("Selected client code:", value);
     console.log(
       "Selected client object:",
@@ -171,7 +203,10 @@ export default function Livraison() {
         {/* transporteur */}
         <div className="flex flex-col">
           <Label className="mb-2 block">Transporteur</Label>
-          <Select onValueChange={handlePriority} value={selectedPriority}>
+          <Select
+            onValueChange={handleTransporteur}
+            value={selectedTransporteurCode}
+          >
             <SelectTrigger className="w-[280px]">
               <SelectValue placeholder="Choisir une priorité" />
             </SelectTrigger>
@@ -179,9 +214,9 @@ export default function Livraison() {
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>transporteur</SelectLabel>
-                {tour.map((p) => (
+                {transporteur.map((p) => (
                   <SelectItem key={p.code} value={p.code}>
-                    {p.name}
+                    {p.description}
                   </SelectItem>
                 ))}
               </SelectGroup>

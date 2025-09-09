@@ -26,20 +26,37 @@ export default function Livraison() {
     { code: "2", name: "Urgent" },
     { code: "3", name: "Très urgent" },
   ];
+  const tour = [
+    { code: "1", name: "Tournée 1" },
+    { code: "2", name: "Tournée 2" },
+    { code: "3", name: "Tournée 3" },
+    { code: "4", name: "Tournée 4" },
+  ];
+
+  const expedition = [];
   return (
     <div>
       <h2> Expédition </h2>
       <Separator className="my-4" />
       <div className="flex flex-row gap-4">
         <div className="flex flex-col">
-          <Label className="mb-2 block">Régime de taxe *</Label>
-          <Input
-            // disabled
-            className="w-[280px]"
-            type="text"
-            placeholder="régime de taxe"
-            value={""}
-          />
+          <Label className="mb-2 block">Site expédition *</Label>
+          <Select onValueChange={handlePriority} value={selectedPriority}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Choisir une priorité" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>site expédition</SelectLabel>
+                {/* {expedition.map((p) => (
+                  <SelectItem key={p.code} value={p.code}>
+                    {p.name}
+                  </SelectItem>
+                ))} */}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex flex-col">
@@ -68,6 +85,70 @@ export default function Livraison() {
       <div className="my-4">
         <DateNumberPicker />
         <DateTimePicker />
+      </div>
+
+      <h2 className="mt-4"> Transport </h2>
+      <Separator className="my-4" />
+      <div className="flex flex-row gap-4">
+        <div className="flex flex-col">
+          <Label className="mb-2 block">No tournée</Label>
+          <Select onValueChange={handlePriority} value={selectedPriority}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Choisir une priorité" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>tournée</SelectLabel>
+                {tour.map((p) => (
+                  <SelectItem key={p.code} value={p.code}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col">
+          <Label className="mb-2 block">Mode livraison</Label>
+          <Select onValueChange={handlePriority} value={selectedPriority}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Choisir une priorité" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>mode livraison</SelectLabel>
+                {tour.map((p) => (
+                  <SelectItem key={p.code} value={p.code}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        {/* transporteur */}
+        <div className="flex flex-col">
+          <Label className="mb-2 block">Transporteur</Label>
+          <Select onValueChange={handlePriority} value={selectedPriority}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Choisir une priorité" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>transporteur</SelectLabel>
+                {tour.map((p) => (
+                  <SelectItem key={p.code} value={p.code}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

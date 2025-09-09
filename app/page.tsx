@@ -57,6 +57,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTheme } from "next-themes";
 import HeaderCommande from "@/components/header-commande";
 import GestionCommande from "@/components/gestion";
+import Livraison from "@/components/livraison";
+import Facturation from "@/components/facturation";
 
 const tabs = [
   {
@@ -72,12 +74,12 @@ const tabs = [
   {
     name: "Livraison",
     value: "livraison",
-    content: "npx shadcn@latest add tabs",
+    content: <Livraison />,
   },
   {
     name: "Facturation",
     value: "facturation",
-    content: "bunx --bun shadcn@latest add tabs",
+    content: <Facturation />,
   },
 ];
 
@@ -282,7 +284,7 @@ export default function POSApp() {
         customerId: selectedCustomer?.id || guestCustomer.id,
         customer: selectedCustomer || guestCustomer,
         deliveryLocationId:
-          selectedCustomer?.defaultDeliveryLocationId ||
+          selectedCustomer?.defaultDeliveryLocationId ??
           guestCustomer.defaultDeliveryLocationId,
         deliveryLocation: null,
         items: cart.map(
@@ -313,7 +315,7 @@ export default function POSApp() {
         expectedDeliveryDate: new Date(Date.now() + 86400000),
         modifications: [],
       };
-
+      //@ts-ignore
       const orderResponse = await createSalesOrder(orderData);
       if (!orderResponse.success || !orderResponse.data) {
         throw new Error(orderResponse.error || "Failed to create order");

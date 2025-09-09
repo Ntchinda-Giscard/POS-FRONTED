@@ -1,18 +1,18 @@
 import { create } from "zustand";
 
 interface TaxeState {
-  selectTaxrCode: string;
-  setTexeCode: (code: string) => void;
+  selectTaxeCode: string;
+  setTaxeCode: (code: string) => void;
 }
 
-const useTierStore = create<TaxeState>()((set, get) => ({
-  selectTaxrCode: "",
+const useTaxeStore = create<TaxeState>()((set, get) => ({
+  selectTaxeCode: "",
 
-  setTexeCode: (code: string) => {
+  setTaxeCode: (code: string) => {
     set({
-      selectTaxrCode: code,
+      selectTaxeCode: code,
     });
   },
 }));
 
-export default useTierStore;
+export default useTaxeStore;

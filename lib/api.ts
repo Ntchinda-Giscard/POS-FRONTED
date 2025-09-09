@@ -19,6 +19,16 @@ export interface ApiResponse<T> {
   isFromMock?: boolean; // Ajout d'un flag pour indiquer si les données viennent du mock
 }
 
+type TaxRegime = {
+  code: string;
+};
+
+type CurrencyType = {
+  code: string;
+  symbol?: string;
+  name?: string;
+};
+
 async function isApiAvailable(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/health`, {
@@ -207,6 +217,52 @@ export async function fetchCustomers(): Promise<ApiResponse<Customer[]>> {
       isFromMock: true,
       error: "API not available - using local data",
     };
+  }
+}
+
+// API pour les regime de taxe
+export async function fetchTaxRegimes(
+  customer_code: string
+): Promise<ApiResponse<TaxRegime>> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/taxe/regime?customer_code=${customer_code}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) throw new Error("Failed to fetch tax regimes");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.warn("[v0] API not available, using mock data for tax regimes");
+    throw error;
+  }
+}
+
+// API pour les devise
+export async function fetchCommandCurrency(
+  customer_code: string
+): Promise<ApiResponse<CurrencyType>> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/currency/code?customer_code=${customer_code}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) throw new Error("Failed to fetch tax regimes");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.warn("[v0] API not available, using mock data for tax regimes");
+    throw error;
   }
 }
 

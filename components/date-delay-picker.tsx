@@ -18,7 +18,7 @@ export function DateNumberPicker() {
   const [date, setDate] = React.useState<Date | undefined>(undefined);
 
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-4 my-4">
       <div className="flex flex-col gap-3">
         <Label htmlFor="date-picker" className="px-1">
           Livraison demandée *
@@ -28,7 +28,7 @@ export function DateNumberPicker() {
             <Button
               variant="outline"
               id="date-picker"
-              className="w-32 justify-between font-normal"
+              className="w-32 justify-between w-[280px] font-normal"
             >
               {date ? date.toLocaleDateString() : "Select date"}
               <ChevronDownIcon />
@@ -56,7 +56,7 @@ export function DateNumberPicker() {
           id="number-picker"
           step="1"
           //   defaultValue="10:30:00"
-          className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+          className="bg-background appearance-none w-[280px] [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
         />
       </div>
     </div>

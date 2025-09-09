@@ -34,7 +34,7 @@ export default function Livraison() {
         <div className="flex flex-col">
           <Label className="mb-2 block">Régime de taxe *</Label>
           <Input
-            disabled
+            // disabled
             className="w-[280px]"
             type="text"
             placeholder="régime de taxe"

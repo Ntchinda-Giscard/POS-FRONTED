@@ -300,6 +300,7 @@ export async function fetchCommandCurrency(
       }
     );
     if (!response.ok) throw new Error("Failed to fetch tax regimes");
+    console.log("transporteur", response);
     const data = await response.json();
     return { success: true, data };
   } catch (error) {

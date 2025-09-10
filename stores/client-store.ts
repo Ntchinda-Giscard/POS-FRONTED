@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 type Client = {
   code: string;
-  description: string;
+  name: string;
 };
 
 interface ClientState {

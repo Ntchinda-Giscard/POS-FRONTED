@@ -17,6 +17,11 @@ import useModeLivraisonStore from "@/stores/mode-livraison-store";
 import { fetchModeLivraison, fetchTransporteur } from "@/lib/api";
 import useTransporteurStore from "@/stores/transporteur";
 
+type Transporteur = {
+  code: string;
+  description: string;
+};
+
 export default function Livraison() {
   const [selectedPriority, setSelectedPriority] = React.useState<string>("");
   const {
@@ -54,7 +59,7 @@ export default function Livraison() {
         const response = await fetchTransporteur();
 
         if (response && response.success) {
-          setModeLivraison(response.data);
+          setTransporteur(response.data);
           console.log("Clients loaded:", response.data);
         }
       } catch (error) {
@@ -76,7 +81,7 @@ export default function Livraison() {
     console.log("Selected client code:", value);
     console.log(
       "Selected client object:",
-      useTransporteurStore.getState().selectedTransporteur
+      useModeLivraisonStore.getState().selectedModeLivraisonCode
     );
   };
 
@@ -85,7 +90,7 @@ export default function Livraison() {
     console.log("Selected client code:", value);
     console.log(
       "Selected client object:",
-      useModeLivraisonStore.getState().selectedModeLivraisonCode
+      useTransporteurStore.getState().selectedTransporteur
     );
   };
 
@@ -200,6 +205,7 @@ export default function Livraison() {
             </SelectContent>
           </Select>
         </div>
+
         {/* transporteur */}
         <div className="flex flex-col">
           <Label className="mb-2 block">Transporteur</Label>
@@ -216,12 +222,17 @@ export default function Livraison() {
                 <SelectLabel>transporteur</SelectLabel>
                 {transporteur.map((p) => (
                   <SelectItem key={p.code} value={p.code}>
-                    {p.description}
+                    {p.code}
                   </SelectItem>
                 ))}
               </SelectGroup>
             </SelectContent>
           </Select>
+          {selectedTransporteur && (
+            <div className="mt-2 text-sm text-gray-600">
+              {selectedTransporteur.description}
+            </div>
+          )}
         </div>
       </div>
     </div>

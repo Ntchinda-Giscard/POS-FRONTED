@@ -66,7 +66,7 @@ const ClientSelect = () => {
             <SelectLabel>Clients</SelectLabel>
             {clients.map((client) => (
               <SelectItem key={client.code} value={client.code}>
-                {client.description} ({client.code})
+                {client.code}
               </SelectItem>
             ))}
           </SelectGroup>
@@ -75,9 +75,7 @@ const ClientSelect = () => {
 
       {/* Debug info - remove in production */}
       {selectedClient && (
-        <div className="mt-2 text-sm text-gray-600">
-          Selected: {selectedClient.description} ({selectedClient.code})
-        </div>
+        <div className="mt-2 text-sm text-gray-600">{selectedClient.name}</div>
       )}
     </div>
   );

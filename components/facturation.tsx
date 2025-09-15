@@ -2,13 +2,14 @@ import React from "react";
 import { Separator } from "./ui/separator";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
+import { Input } from "./ui/input";
 
 export default function Facturation() {
   return (
-    <div>
-      <div>
-        <h1>Mode facturation</h1>
-        <Separator className="my-4" />
+    <div className="flex flex-col w-full gap-4">
+      <h1> Mode facturation</h1>
+      <Separator />
+      <div className="w-fit min-w-[200px] ">
         <h2 className="text-sm my-2"> Mode facturation </h2>
         <RadioGroup defaultValue="1">
           <div className="flex items-center space-x-2">
@@ -37,6 +38,33 @@ export default function Facturation() {
             <Label htmlFor="r6">Fac manuelle</Label>
           </div>
         </RadioGroup>
+      </div>
+      <div>
+        <h1> Règlement / Derniers documents</h1>
+        <Separator className="my-4" />
+        <div className="flex flex-row gap-4">
+          <div className="flex flex-col">
+            <Label className="mb-2 block">Condition paiement *</Label>
+            <Input
+              disabled
+              className="w-[280px]"
+              type="text"
+              placeholder="XXX"
+              // value={selectTaxeCode}
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <Label className="mb-2 block">Escompte</Label>
+            <Input
+              disabled
+              className="w-[280px]"
+              type="text"
+              placeholder="XXX"
+              // value={selectTaxeCode}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

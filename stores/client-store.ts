@@ -3,6 +3,7 @@ import { create } from "zustand";
 type Client = {
   code: string;
   name: string;
+  mode_fac: string;
 };
 
 interface ClientState {

@@ -152,14 +152,12 @@ export default function Livraison() {
           </Select>
         </div>
       </div>
-
       <h2 className="mt-4"> Dates </h2>
       <Separator className="my-4" />
       <div className="my-4">
         <DateNumberPicker />
         <DateTimePicker />
       </div>
-
       <h2 className="mt-4"> Transport </h2>
       <Separator className="my-4" />
       <div className="flex flex-row gap-4">
@@ -235,6 +233,8 @@ export default function Livraison() {
           )}
         </div>
       </div>
+      <h2 className="mt-4"> Règles </h2>
+      <Separator className="my-4" />
     </div>
   );
 }

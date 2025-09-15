@@ -4,9 +4,10 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import useClientStore from "@/stores/client-store";
-import { fetchEscomtpe, fetchPaymentCondition } from "@/lib/api";
+import { fetchCondFact, fetchEscomtpe, fetchPaymentCondition } from "@/lib/api";
 import usePayCondStore from "@/stores/payment-condition-store";
 import useEscompte from "@/stores/escompte-store";
+import useCondFact from "@/stores/cond-fact";
 
 export default function Facturation() {
   const selectedClientCode = useClientStore(
@@ -15,6 +16,7 @@ export default function Facturation() {
 
   const { selectPayCondCode, setPayCondCode } = usePayCondStore();
   const { selectEscompteCode, setEscompteCode } = useEscompte();
+  const { selectedCondFact, setCondFact } = useCondFact();
   useEffect(() => {
     const loadConditioPay = async () => {
       const response = await fetchPaymentCondition(selectedClientCode);
@@ -24,8 +26,14 @@ export default function Facturation() {
       const response = await fetchEscomtpe(selectedClientCode);
       setEscompteCode(response.data?.code || "");
     };
+
+    const loadCondFact = async () => {
+      const response = await fetchCondFact(selectedClientCode);
+      setCondFact(response.data?.code || "");
+    };
     loadConditioPay();
     loadEscompte();
+    loadCondFact();
   }, [selectPayCondCode]);
   return (
     <div className="flex flex-col w-full gap-4">
@@ -70,7 +78,7 @@ export default function Facturation() {
               className="w-[280px]"
               type="text"
               placeholder="xxx"
-              value={selectPayCondCode}
+              value={selectedCondFact}
             />
           </div>
         </div>

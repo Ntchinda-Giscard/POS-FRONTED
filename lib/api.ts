@@ -37,6 +37,10 @@ type Escompte = {
   code: string;
 };
 
+type CondFactType = {
+  code: string;
+};
+
 async function isApiAvailable(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/health`, {
@@ -372,6 +376,30 @@ export async function fetchEscomtpe(
   try {
     const response = await fetch(
       `${API_BASE_URL}/facture/escomte?customer_code=${customer_code}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) throw new Error("Failed to fetch tax regimes");
+    console.log("transporteur", response);
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.warn("[v0] API not available, using mock data for tax regimes");
+    throw error;
+  }
+}
+
+// API pour les condition de facturation
+export async function fetchCondFact(
+  customer_code: string
+): Promise<ApiResponse<CondFactType>> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/facture/condfac?customer_code=${customer_code}`,
       {
         method: "GET",
         headers: {

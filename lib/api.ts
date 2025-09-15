@@ -186,11 +186,15 @@ export async function fetchCommandType() {
 }
 
 export async function searchProducts(
+  site_id: string,
   query: string
 ): Promise<ApiResponse<Product[]>> {
   try {
+    console.log("Query", encodeURIComponent(query));
     const response = await fetch(
-      `${API_BASE_URL}/products/search?q=${encodeURIComponent(query)}`,
+      `${API_BASE_URL}/articles/search?sitde_id=${site_id}&q=${encodeURIComponent(
+        query
+      )}`,
       {
         signal: AbortSignal.timeout(5000),
       }
@@ -202,8 +206,10 @@ export async function searchProducts(
     console.warn("[v0] API not available, searching in mock data");
     const filteredProducts = mockProducts.filter(
       (product) =>
+        !query ||
+        query.trim() === "" ||
         product.describtion.toLowerCase().includes(query.toLowerCase()) ||
-        product.barcode?.includes(query)
+        product.item_code?.toLowerCase().includes(query.toLowerCase())
     );
     return {
       success: true,

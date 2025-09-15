@@ -151,7 +151,7 @@ export default function POSApp() {
     const performSearch = async () => {
       if (searchTerm.trim()) {
         console.log("[v0] Searching products for:", searchTerm);
-        const searchResponse = await searchProducts(searchTerm);
+        const searchResponse = await searchProducts("FR011", searchTerm);
         if (searchResponse.success && searchResponse.data) {
           setProducts(searchResponse.data);
         }
@@ -515,7 +515,7 @@ export default function POSApp() {
               </Card>
             )}
 
-            <Card className="transition-all duration-200 hover:shadow-lg">
+            <Card className="transition-all duration-200 hover:shadow-lg overflow-y-scroll h-screen">
               <CardHeader>
                 <CardTitle className="flex flex-col items-start gap-2">
                   {/* Tabs */}
@@ -565,7 +565,7 @@ export default function POSApp() {
                     </Button>
                   </div>
                 </CardTitle>
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col gap-4 relative">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -761,7 +761,7 @@ export default function POSApp() {
                 )}
               </Button>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-1">
               <p className="text-muted-foreground">
                 {currentView === "pos"
                   ? "Modern retail management system"
@@ -813,7 +813,7 @@ export default function POSApp() {
                 </DialogTitle>
               </DialogHeader>
 
-              <div className="space-y-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="space-y-4 max-h-[calc(90vh-120px)]">
                 {cart.length === 0 ? (
                   <div className="text-center py-8">
                     <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -831,7 +831,7 @@ export default function POSApp() {
 
                     <Separator />
 
-                    <div className="max-h-64 overflow-y-auto space-y-3">
+                    <div className="max-h-64 space-y-3">
                       {cart.map((item, index) => (
                         <div
                           key={item.productId}

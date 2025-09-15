@@ -169,12 +169,14 @@ export default function POSApp() {
 
   const categories = [
     "all",
-    ...Array.from(new Set(products.map((p: { category: any }) => p.category))),
+    ...Array.from(
+      new Set(products.map((p: { categorie: any }) => p.categorie))
+    ),
   ];
 
-  const filteredProducts = products.filter((product: { category: any }) => {
+  const filteredProducts = products.filter((product: { categorie: any }) => {
     const matchesCategory =
-      selectedCategory === "all" || product.category === selectedCategory;
+      selectedCategory === "all" || product.categorie === selectedCategory;
     return matchesCategory;
   });
 
@@ -201,17 +203,21 @@ export default function POSApp() {
   const addToCart = (product: Product) => {
     if (product.stock === 0) return;
 
-    const button = document.querySelector(`[data-product-id="${product.id}"]`);
+    const button = document.querySelector(
+      `[data-product-id="${product.item_code}"]`
+    );
     if (button) {
       button.classList.add("animate-pulse");
       setTimeout(() => button.classList.remove("animate-pulse"), 300);
     }
 
     setCart((prev: any[]) => {
-      const existingItem = prev.find((item) => item.productId === product.id);
+      const existingItem = prev.find(
+        (item) => item.productId === product.item_code
+      );
       if (existingItem) {
         return prev.map((item) =>
-          item.productId === product.id
+          item.productId === product.item_code
             ? {
                 ...item,
                 quantity: item.quantity + 1,
@@ -223,11 +229,11 @@ export default function POSApp() {
       return [
         ...prev,
         {
-          productId: product.id,
+          productId: product.item_code,
           product,
           quantity: 1,
-          unitPrice: product.price,
-          totalPrice: product.price,
+          unitPrice: product.base_price,
+          totalPrice: product.base_price,
         },
       ];
     });
@@ -540,7 +546,7 @@ export default function POSApp() {
                     <Package className="h-5 w-5" />
                     <p>Product Catalog</p>
                   </div>
-                  {/* {isLoadingProducts && (
+                  {isLoadingProducts && (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   )}
                   <div className="ml-auto">
@@ -557,9 +563,9 @@ export default function POSApp() {
                         </div>
                       )}
                     </Button>
-                  </div> */}
+                  </div>
                 </CardTitle>
-                {/* <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -597,10 +603,10 @@ export default function POSApp() {
                       Clear search
                     </Button>
                   )}
-                </div> */}
+                </div>
               </CardHeader>
               <CardContent>
-                {/* {isLoadingProducts ? (
+                {isLoadingProducts ? (
                   <div className="text-center py-12">
                     <Loader2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
                     <h3 className="text-lg font-semibold mb-2">
@@ -616,7 +622,7 @@ export default function POSApp() {
                       const stockStatus = getStockStatus(product.stock);
                       return (
                         <Card
-                          key={product.id}
+                          key={product.item_code}
                           className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
                             product.stock === 0
                               ? "opacity-60"
@@ -630,7 +636,7 @@ export default function POSApp() {
                                   product.image ||
                                   "/placeholder.svg?height=120&width=120&query=product"
                                 }
-                                alt={product.name}
+                                alt={product.describtion}
                                 width={120}
                                 height={120}
                                 className="w-full h-24 object-cover rounded-md bg-muted transition-transform duration-200 hover:scale-105"
@@ -645,7 +651,7 @@ export default function POSApp() {
                             <div className="space-y-2">
                               <div className="flex justify-between items-start">
                                 <h3 className="font-semibold text-sm leading-tight">
-                                  {product.name}
+                                  {product.describtion}
                                 </h3>
                                 <Badge
                                   variant={stockStatus.variant}
@@ -657,7 +663,7 @@ export default function POSApp() {
 
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                                  {product.category}
+                                  {product.categorie}
                                 </span>
                                 <span
                                   className={`text-xs font-medium ${stockStatus.color}`}
@@ -668,14 +674,14 @@ export default function POSApp() {
 
                               <div className="flex justify-between items-center pt-2">
                                 <span className="text-lg font-bold text-primary">
-                                  ${product.price.toFixed(2)}
+                                  ${product.base_price.toFixed(2)}
                                 </span>
                                 <Button
                                   size="sm"
                                   onClick={() => addToCart(product)}
                                   disabled={product.stock === 0}
                                   className="min-w-[60px] transition-all duration-200 hover:scale-105"
-                                  data-product-id={product.id}
+                                  data-product-id={product.item_code}
                                 >
                                   {product.stock === 0 ? "Sold Out" : "Add"}
                                 </Button>
@@ -706,7 +712,7 @@ export default function POSApp() {
                         : "No products available in this category"}
                     </p>
                   </div>
-                )} */}
+                )}
               </CardContent>
             </Card>
           </div>
@@ -837,14 +843,14 @@ export default function POSApp() {
                               item.product.image ||
                               "/placeholder.svg?height=40&width=40&query=product"
                             }
-                            alt={item.product.name}
+                            alt={item.product.describtion}
                             width={40}
                             height={40}
                             className="w-10 h-10 object-cover rounded transition-transform duration-200 hover:scale-110"
                           />
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm truncate">
-                              {item.product.name}
+                              {item.product.describtion}
                             </h4>
                             <p className="text-xs text-muted-foreground">
                               ${item.unitPrice.toFixed(2)} each

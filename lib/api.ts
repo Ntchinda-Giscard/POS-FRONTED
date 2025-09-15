@@ -55,7 +55,9 @@ async function isApiAvailable(): Promise<boolean> {
 
 // : Promise<ApiResponse<Product[]>>
 // API pour les produits
-export async function fetchProducts(site_code: string) {
+export async function fetchProducts(
+  site_code: string
+): Promise<ApiResponse<Product[]>> {
   try {
     const response = await fetch(
       `${API_BASE_URL}/articles/?site_id=${site_code}`,
@@ -200,7 +202,7 @@ export async function searchProducts(
     console.warn("[v0] API not available, searching in mock data");
     const filteredProducts = mockProducts.filter(
       (product) =>
-        product.name.toLowerCase().includes(query.toLowerCase()) ||
+        product.describtion.toLowerCase().includes(query.toLowerCase()) ||
         product.barcode?.includes(query)
     );
     return {

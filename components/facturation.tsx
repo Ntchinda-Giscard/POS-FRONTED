@@ -1,10 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Separator } from "./ui/separator";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
+import useClientStore from "@/stores/client-store";
+import { fetchPaymentCondition } from "@/lib/api";
 
 export default function Facturation() {
+  const selectedClientCode = useClientStore(
+    (state) => state.selectedClientCode
+  );
+  useEffect(() => {
+    const loadConditioPay = () => {
+      const response = fetchPaymentCondition(selectedClientCode);
+    };
+  }, []);
   return (
     <div className="flex flex-col w-full gap-4">
       <h1> Mode facturation</h1>

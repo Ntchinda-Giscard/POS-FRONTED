@@ -18,7 +18,6 @@ type AdresseVente = {
 };
 
 const SiteVenteSelect = () => {
-  const [addressVente, setAddressVente] = useState<AdresseVente[]>([]);
   const { selectedSitetCode, sites, setSelectedSitetCode, setSiteVente } =
     useSiteVenteStore();
 

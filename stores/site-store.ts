@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 type SiteVente = {
   code: string;
-  ndescriptioname: string;
+  description: string;
 };
 
 interface SiteVenteState {

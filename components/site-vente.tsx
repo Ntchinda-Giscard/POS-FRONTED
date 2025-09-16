@@ -19,14 +19,8 @@ type AdresseVente = {
 
 const SiteVenteSelect = () => {
   const [addressVente, setAddressVente] = useState<AdresseVente[]>([]);
-  const {
-    selectedSite,
-    selectedSitetCode,
-    sites,
-    setSelectedSite,
-    setSelectedSitetCode,
-    setSiteVente,
-  } = useSiteVenteStore();
+  const { selectedSitetCode, sites, setSelectedSitetCode, setSiteVente } =
+    useSiteVenteStore();
 
   useEffect(() => {
     const loadingAdresseVente = async () => {
@@ -59,9 +53,9 @@ const SiteVenteSelect = () => {
         <SelectContent>
           <SelectGroup>
             <SelectLabel>adresse de vente</SelectLabel>
-            {addressVente.map((adresse) => (
-              <SelectItem key={adresse.code} value={adresse.code}>
-                {adresse.description} ({adresse.code})
+            {sites.map((site) => (
+              <SelectItem key={site.code} value={site.code}>
+                {site.description} ({site.code})
               </SelectItem>
             ))}
           </SelectGroup>

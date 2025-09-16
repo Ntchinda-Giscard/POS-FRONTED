@@ -15,7 +15,7 @@ interface SiteVenteState {
   clearSelection: () => void;
 }
 
-const useClientStore = create<SiteVenteState>()((set, get) => ({
+const useSiteVenteStore = create<SiteVenteState>()((set, get) => ({
   selectedSite: null,
   selectedSitetCode: "",
   sites: [],
@@ -44,4 +44,4 @@ const useClientStore = create<SiteVenteState>()((set, get) => ({
     }),
 }));
 
-export default useClientStore;
+export default useSiteVenteStore;

@@ -1,47 +1,46 @@
 import { create } from "zustand";
 
-type Client = {
+type SiteVente = {
   code: string;
-  name: string;
-  mode_fac: string;
+  ndescriptioname: string;
 };
 
-interface ClientState {
-  selectedClient: Client | null;
-  selectedClientCode: string;
-  clients: Client[];
-  setSelectedClient: (client: Client) => void;
-  setSelectedClientCode: (code: string) => void;
-  setClients: (clients: Client[]) => void;
+interface SiteVenteState {
+  selectedSite: SiteVente | null;
+  selectedSitetCode: string;
+  sites: SiteVente[];
+  setSelectedSite: (client: SiteVente) => void;
+  setSelectedSitetCode: (code: string) => void;
+  setSiteVente: (clients: SiteVente[]) => void;
   clearSelection: () => void;
 }
 
-const useClientStore = create<ClientState>()((set, get) => ({
-  selectedClient: null,
-  selectedClientCode: "",
-  clients: [],
+const useClientStore = create<SiteVenteState>()((set, get) => ({
+  selectedSite: null,
+  selectedSitetCode: "",
+  sites: [],
 
-  setSelectedClient: (client: Client) =>
+  setSelectedSite: (client: SiteVente) =>
     set({
-      selectedClient: client,
-      selectedClientCode: client.code,
+      selectedSite: client,
+      selectedSitetCode: client.code,
     }),
 
-  setSelectedClientCode: (code: string) => {
-    const clients = get().clients;
-    const client = clients.find((c) => c.code === code);
+  setSelectedSitetCode: (code: string) => {
+    const sites = get().sites;
+    const client = sites.find((s) => s.code === code);
     set({
-      selectedClientCode: code,
-      selectedClient: client || null,
+      selectedSitetCode: code,
+      selectedSite: client || null,
     });
   },
 
-  setClients: (clients: Client[]) => set({ clients }),
+  setSiteVente: (sites: SiteVente[]) => set({ sites }),
 
   clearSelection: () =>
     set({
-      selectedClient: null,
-      selectedClientCode: "",
+      selectedSite: null,
+      selectedSitetCode: "",
     }),
 }));
 

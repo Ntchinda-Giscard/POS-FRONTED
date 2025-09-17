@@ -8,8 +8,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import useSiteExpeditionStore from "@/stores/expedition-store";
 
 export default function SiteExpedition() {
+  // const handle
+  const {
+    addressExpedition,
+    selectedadressExpeditionCode,
+    selectedadressExpedition,
+    setSelectedadressExpedition,
+    setSelectedadressExpeditionCode,
+  } = useSiteExpeditionStore();
+
   return (
     <div className="flex flex-col w-full">
       <Label className="mb-2 block">Site expédition *</Label>

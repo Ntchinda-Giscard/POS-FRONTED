@@ -169,10 +169,10 @@ export async function fetchAdresseLivraison(customer_code: string) {
 }
 
 // API pour get les Adresse de livraison
-export async function fetchAdresseExpedition(legacy_comp: string) {
+export async function fetchAdresseExpedition(legacy_comp: string | undefined) {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/adresse/expedition?code_client=${legacy_comp}`,
+      `${API_BASE_URL}/adresse/expedition?legacy_comp=${legacy_comp}`,
       {
         method: "GET",
         headers: {

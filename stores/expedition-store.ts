@@ -2,6 +2,8 @@ import { create } from "zustand";
 
 type AdresseExpedition = {
   code: string;
+  description: string;
+  leg_comp: string;
 };
 
 interface SiteExpeditionState {

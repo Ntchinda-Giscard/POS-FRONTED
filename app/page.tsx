@@ -61,6 +61,7 @@ import Livraison from "@/components/livraison";
 import Facturation from "@/components/facturation";
 import useSiteVenteStore from "@/stores/site-store";
 import SiteExpedition from "@/components/select-site-epedition";
+import useSiteExpeditionStore from "@/stores/expedition-store";
 
 const tabs = [
   {
@@ -122,13 +123,15 @@ export default function POSApp() {
 
   const [showReceiptGenerator, setShowReceiptGenerator] = useState(false);
 
-  const siteDeVenteCode = useSiteVenteStore((state) => state.selectedSitetCode);
+  const siteExoeditionCode = useSiteExpeditionStore(
+    (state) => state.selectedadressExpeditionCode
+  );
 
   useEffect(() => {
     const loadInitialData = async () => {
       console.log("[v0] Loading initial data from API...");
 
-      const productsResponse = await fetchProducts(siteDeVenteCode);
+      const productsResponse = await fetchProducts(siteExoeditionCode);
       if (productsResponse.success && productsResponse.data) {
         setProducts(productsResponse.data);
         console.log("[v0] Products loaded:", productsResponse.data.length);
@@ -149,21 +152,21 @@ export default function POSApp() {
     };
 
     loadInitialData();
-  }, [siteDeVenteCode]);
+  }, [siteExoeditionCode]);
 
   useEffect(() => {
     const performSearch = async () => {
       if (searchTerm.trim()) {
         console.log("[v0] Searching products for:", searchTerm);
         const searchResponse = await searchProducts(
-          siteDeVenteCode,
+          siteExoeditionCode,
           searchTerm
         );
         if (searchResponse.success && searchResponse.data) {
           setProducts(searchResponse.data);
         }
       } else {
-        const productsResponse = await fetchProducts(siteDeVenteCode);
+        const productsResponse = await fetchProducts(siteExoeditionCode);
         if (productsResponse.success && productsResponse.data) {
           setProducts(productsResponse.data);
         }

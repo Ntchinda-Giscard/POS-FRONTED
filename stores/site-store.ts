@@ -3,6 +3,7 @@ import { create } from "zustand";
 type SiteVente = {
   code: string;
   description: string;
+  leg_comp: string;
 };
 
 interface SiteVenteState {

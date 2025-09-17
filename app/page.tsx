@@ -226,22 +226,17 @@ export default function POSApp() {
   };
 
   const addToCart = (product: Product) => {
-    const quantity = productQuantities[product.item_code] || 1;
+    if (product.stock === 0) return;
 
     const button = document.querySelector(
       `[data-product-id="${product.item_code}"]`
     );
     if (button) {
-      button.classList.add("animate-bounce");
-      setTimeout(() => button.classList.remove("animate-bounce"), 600);
+      button.classList.add("animate-pulse");
+      setTimeout(() => button.classList.remove("animate-pulse"), 300);
     }
 
-    setShowQuantityControls((prev) => ({
-      ...prev,
-      [product.item_code]: true,
-    }));
-
-    setCart((prev) => {
+    setCart((prev: any[]) => {
       const existingItem = prev.find(
         (item) => item.productId === product.item_code
       );
@@ -250,8 +245,8 @@ export default function POSApp() {
           item.productId === product.item_code
             ? {
                 ...item,
-                quantity: item.quantity + quantity,
-                totalPrice: (item.quantity + quantity) * item.unitPrice,
+                quantity: item.quantity + 1,
+                totalPrice: (item.quantity + 1) * item.unitPrice,
               }
             : item
         );
@@ -261,16 +256,18 @@ export default function POSApp() {
         {
           productId: product.item_code,
           product,
-          quantity,
+          quantity: 1,
           unitPrice: product.base_price,
-          totalPrice: product.base_price * quantity,
+          totalPrice: product.base_price,
         },
       ];
     });
   };
 
   const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.productId !== productId));
+    setCart((prev: any[]) =>
+      prev.filter((item) => item.productId !== productId)
+    );
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -278,7 +275,7 @@ export default function POSApp() {
       removeFromCart(productId);
       return;
     }
-    setCart((prev) =>
+    setCart((prev: any[]) =>
       prev.map((item) =>
         item.productId === productId
           ? { ...item, quantity, totalPrice: quantity * item.unitPrice }
@@ -289,26 +286,7 @@ export default function POSApp() {
 
   const clearCart = () => {
     setCart([]);
-  };
-
-  const updateProductQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setProductQuantities((prev) => {
-        const newQuantities = { ...prev };
-        delete newQuantities[productId];
-        return newQuantities;
-      });
-      setShowQuantityControls((prev) => ({
-        ...prev,
-        [productId]: false,
-      }));
-      return;
-    }
-
-    setProductQuantities((prev) => ({
-      ...prev,
-      [productId]: Math.max(1, quantity),
-    }));
+    setSelectedCustomer(undefined);
   };
 
   const processTransaction = async (
@@ -317,23 +295,122 @@ export default function POSApp() {
     if (cart.length === 0) return;
 
     setIsProcessing(true);
+    console.log("[v0] Processing transaction with method:", paymentMethod);
 
-    // Simulate processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const guestCustomer: Customer = {
+        id: "guest",
+        name: "Guest",
+        email: "",
+        phone: "",
+        defaultDeliveryLocationId: "1",
+        customerCode: "",
+        creditLimit: 0,
+        paymentTerms: "",
+        isActive: false,
+        totalPurchases: 0,
+      };
 
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      items: cart,
-      total: cart.reduce((sum, item) => sum + item.totalPrice, 0),
-      paymentMethod,
-      timestamp: new Date(),
-      status: "completed",
-    };
+      const orderData = {
+        customerId: selectedCustomer?.id || guestCustomer.id,
+        customer: selectedCustomer || guestCustomer,
+        deliveryLocationId:
+          selectedCustomer?.defaultDeliveryLocationId ??
+          guestCustomer.defaultDeliveryLocationId,
+        deliveryLocation: null,
+        items: cart.map(
+          (item: {
+            productId: any;
+            product: any;
+            quantity: any;
+            unitPrice: any;
+            totalPrice: any;
+          }) => ({
+            id: `item-${Date.now()}-${item.productId}`,
+            productId: item.productId,
+            product: item.product,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: 0,
+            totalPrice: item.totalPrice,
+            reservedStock: item.quantity,
+          })
+        ),
+        subtotal: calculateTransactionTotals(cart).subtotal,
+        tax: calculateTransactionTotals(cart).tax,
+        discount: 0,
+        total: calculateTransactionTotals(cart).total,
+        status: "draft" as const,
+        createdBy: "cashier1",
+        priority: "normal" as const,
+        expectedDeliveryDate: new Date(Date.now() + 86400000),
+        modifications: [],
+      };
+      //@ts-ignore
+      const orderResponse = await createSalesOrder(orderData);
+      if (!orderResponse.success || !orderResponse.data) {
+        throw new Error(orderResponse.error || "Failed to create order");
+      }
 
-    setTransactionHistory((prev) => [transaction, ...prev]);
-    clearCart();
-    setIsCartOpen(false);
-    setIsProcessing(false);
+      console.log("[v0] Order created:", orderResponse.data.orderNumber);
+
+      const paymentResponse = await processPayment({
+        orderId: orderResponse.data.id,
+        amount: orderResponse.data.total,
+        method: paymentMethod,
+      });
+
+      if (!paymentResponse.success || !paymentResponse.data) {
+        throw new Error(paymentResponse.error || "Payment processing failed");
+      }
+
+      console.log(
+        "[v0] Payment processed:",
+        paymentResponse.data.transactionId
+      );
+
+      const finalizeResponse = await finalizeOrder(orderResponse.data.id);
+      if (!finalizeResponse.success) {
+        throw new Error(finalizeResponse.error || "Failed to finalize order");
+      }
+
+      const transaction = createTransaction(
+        cart,
+        paymentMethod,
+        selectedCustomer
+      );
+      transaction.status = "completed";
+
+      if (paymentMethod === "cash") {
+        setCashDrawerAmount((prev: number) => prev + transaction.total);
+        setCashTransactions((prev: any) => [
+          ...prev,
+          {
+            id: `cash-${Date.now()}`,
+            type: "sale",
+            amount: transaction.total,
+            timestamp: new Date(),
+            description: `Sale #${transaction.id.slice(-6)}`,
+          },
+        ]);
+      }
+
+      setTransactionHistory((prev: any) => [transaction, ...prev]);
+
+      setCompletedTransaction(transaction);
+
+      clearCart();
+      setIsCartOpen(false);
+
+      console.log("[v0] Transaction completed successfully");
+    } catch (error) {
+      console.error("[v0] Transaction failed:", error);
+      setApiError(
+        error instanceof Error ? error.message : "Transaction failed"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handlePrintReceipt = () => {

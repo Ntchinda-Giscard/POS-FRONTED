@@ -49,7 +49,9 @@ import {
   Sun,
   X,
   Loader2,
-  Copy,
+  Minus,
+  Plus,
+  Menu,
 } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,6 +88,14 @@ const tabs = [
   },
 ];
 
+interface CartItem {
+  productId: string;
+  product: Product;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
 export default function POSApp() {
   const [currentView, setCurrentView] = useState("pos");
   const [cart, setCart] = useState<TransactionItem[]>([]);
@@ -107,7 +117,12 @@ export default function POSApp() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-
+  const [productQuantities, setProductQuantities] = useState<
+    Record<string, number>
+  >({});
+  const [showQuantityControls, setShowQuantityControls] = useState<
+    Record<string, boolean>
+  >({});
   const [cashDrawerOpen, setCashDrawerOpen] = useState(false);
   const [cashDrawerAmount, setCashDrawerAmount] = useState(200.0);
   const [openingAmount, setOpeningAmount] = useState(200.0);
@@ -211,17 +226,22 @@ export default function POSApp() {
   };
 
   const addToCart = (product: Product) => {
-    if (product.stock === 0) return;
+    const quantity = productQuantities[product.item_code] || 1;
 
     const button = document.querySelector(
       `[data-product-id="${product.item_code}"]`
     );
     if (button) {
-      button.classList.add("animate-pulse");
-      setTimeout(() => button.classList.remove("animate-pulse"), 300);
+      button.classList.add("animate-bounce");
+      setTimeout(() => button.classList.remove("animate-bounce"), 600);
     }
 
-    setCart((prev: any[]) => {
+    setShowQuantityControls((prev) => ({
+      ...prev,
+      [product.item_code]: true,
+    }));
+
+    setCart((prev) => {
       const existingItem = prev.find(
         (item) => item.productId === product.item_code
       );
@@ -230,8 +250,8 @@ export default function POSApp() {
           item.productId === product.item_code
             ? {
                 ...item,
-                quantity: item.quantity + 1,
-                totalPrice: (item.quantity + 1) * item.unitPrice,
+                quantity: item.quantity + quantity,
+                totalPrice: (item.quantity + quantity) * item.unitPrice,
               }
             : item
         );
@@ -241,18 +261,16 @@ export default function POSApp() {
         {
           productId: product.item_code,
           product,
-          quantity: 1,
+          quantity,
           unitPrice: product.base_price,
-          totalPrice: product.base_price,
+          totalPrice: product.base_price * quantity,
         },
       ];
     });
   };
 
   const removeFromCart = (productId: string) => {
-    setCart((prev: any[]) =>
-      prev.filter((item) => item.productId !== productId)
-    );
+    setCart((prev) => prev.filter((item) => item.productId !== productId));
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -260,7 +278,7 @@ export default function POSApp() {
       removeFromCart(productId);
       return;
     }
-    setCart((prev: any[]) =>
+    setCart((prev) =>
       prev.map((item) =>
         item.productId === productId
           ? { ...item, quantity, totalPrice: quantity * item.unitPrice }

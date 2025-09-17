@@ -289,7 +289,26 @@ export default function POSApp() {
 
   const clearCart = () => {
     setCart([]);
-    setSelectedCustomer(undefined);
+  };
+
+  const updateProductQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
+      setProductQuantities((prev) => {
+        const newQuantities = { ...prev };
+        delete newQuantities[productId];
+        return newQuantities;
+      });
+      setShowQuantityControls((prev) => ({
+        ...prev,
+        [productId]: false,
+      }));
+      return;
+    }
+
+    setProductQuantities((prev) => ({
+      ...prev,
+      [productId]: Math.max(1, quantity),
+    }));
   };
 
   const processTransaction = async (
@@ -298,122 +317,23 @@ export default function POSApp() {
     if (cart.length === 0) return;
 
     setIsProcessing(true);
-    console.log("[v0] Processing transaction with method:", paymentMethod);
 
-    try {
-      const guestCustomer: Customer = {
-        id: "guest",
-        name: "Guest",
-        email: "",
-        phone: "",
-        defaultDeliveryLocationId: "1",
-        customerCode: "",
-        creditLimit: 0,
-        paymentTerms: "",
-        isActive: false,
-        totalPurchases: 0,
-      };
+    // Simulate processing
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const orderData = {
-        customerId: selectedCustomer?.id || guestCustomer.id,
-        customer: selectedCustomer || guestCustomer,
-        deliveryLocationId:
-          selectedCustomer?.defaultDeliveryLocationId ??
-          guestCustomer.defaultDeliveryLocationId,
-        deliveryLocation: null,
-        items: cart.map(
-          (item: {
-            productId: any;
-            product: any;
-            quantity: any;
-            unitPrice: any;
-            totalPrice: any;
-          }) => ({
-            id: `item-${Date.now()}-${item.productId}`,
-            productId: item.productId,
-            product: item.product,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: 0,
-            totalPrice: item.totalPrice,
-            reservedStock: item.quantity,
-          })
-        ),
-        subtotal: calculateTransactionTotals(cart).subtotal,
-        tax: calculateTransactionTotals(cart).tax,
-        discount: 0,
-        total: calculateTransactionTotals(cart).total,
-        status: "draft" as const,
-        createdBy: "cashier1",
-        priority: "normal" as const,
-        expectedDeliveryDate: new Date(Date.now() + 86400000),
-        modifications: [],
-      };
-      //@ts-ignore
-      const orderResponse = await createSalesOrder(orderData);
-      if (!orderResponse.success || !orderResponse.data) {
-        throw new Error(orderResponse.error || "Failed to create order");
-      }
+    const transaction = {
+      id: `txn-${Date.now()}`,
+      items: cart,
+      total: cart.reduce((sum, item) => sum + item.totalPrice, 0),
+      paymentMethod,
+      timestamp: new Date(),
+      status: "completed",
+    };
 
-      console.log("[v0] Order created:", orderResponse.data.orderNumber);
-
-      const paymentResponse = await processPayment({
-        orderId: orderResponse.data.id,
-        amount: orderResponse.data.total,
-        method: paymentMethod,
-      });
-
-      if (!paymentResponse.success || !paymentResponse.data) {
-        throw new Error(paymentResponse.error || "Payment processing failed");
-      }
-
-      console.log(
-        "[v0] Payment processed:",
-        paymentResponse.data.transactionId
-      );
-
-      const finalizeResponse = await finalizeOrder(orderResponse.data.id);
-      if (!finalizeResponse.success) {
-        throw new Error(finalizeResponse.error || "Failed to finalize order");
-      }
-
-      const transaction = createTransaction(
-        cart,
-        paymentMethod,
-        selectedCustomer
-      );
-      transaction.status = "completed";
-
-      if (paymentMethod === "cash") {
-        setCashDrawerAmount((prev: number) => prev + transaction.total);
-        setCashTransactions((prev: any) => [
-          ...prev,
-          {
-            id: `cash-${Date.now()}`,
-            type: "sale",
-            amount: transaction.total,
-            timestamp: new Date(),
-            description: `Sale #${transaction.id.slice(-6)}`,
-          },
-        ]);
-      }
-
-      setTransactionHistory((prev: any) => [transaction, ...prev]);
-
-      setCompletedTransaction(transaction);
-
-      clearCart();
-      setIsCartOpen(false);
-
-      console.log("[v0] Transaction completed successfully");
-    } catch (error) {
-      console.error("[v0] Transaction failed:", error);
-      setApiError(
-        error instanceof Error ? error.message : "Transaction failed"
-      );
-    } finally {
-      setIsProcessing(false);
-    }
+    setTransactionHistory((prev) => [transaction, ...prev]);
+    clearCart();
+    setIsCartOpen(false);
+    setIsProcessing(false);
   };
 
   const handlePrintReceipt = () => {

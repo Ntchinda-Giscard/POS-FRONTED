@@ -168,6 +168,29 @@ export async function fetchAdresseLivraison(customer_code: string) {
   }
 }
 
+// API pour get les Adresse de livraison
+export async function fetchAdresseExpedition(legacy_comp: string) {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/adresse/expedition?code_client=${legacy_comp}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) throw new Error("Failed to fetch delivery addresses");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error(error);
+    console.warn(
+      "[v0] API not available, using mock data for delivery addresses"
+    );
+  }
+}
+
 export async function fetchCommandType() {
   try {
     const response = await fetch(`${API_BASE_URL}/command/type`, {
@@ -196,7 +219,10 @@ export async function searchProducts(
         query
       )}`,
       {
-        signal: AbortSignal.timeout(5000),
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
     if (!response.ok) throw new Error("Failed to search products");
@@ -204,19 +230,6 @@ export async function searchProducts(
     return { success: true, data };
   } catch (error) {
     console.warn("[v0] API not available, searching in mock data");
-    const filteredProducts = mockProducts.filter(
-      (product) =>
-        !query ||
-        query.trim() === "" ||
-        product.describtion.toLowerCase().includes(query.toLowerCase()) ||
-        product.item_code?.toLowerCase().includes(query.toLowerCase())
-    );
-    return {
-      success: true,
-      data: filteredProducts,
-      isFromMock: true,
-      error: "API not available - searching local data",
-    };
   }
 }
 

@@ -113,26 +113,6 @@ export default function Livraison() {
       <Separator className="my-4" />
       <div className="flex flex-row gap-4">
         <div className="flex flex-col">
-          <Label className="mb-2 block">Site expédition *</Label>
-          <Select onValueChange={handlePriority} value={selectedPriority}>
-            <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Choisir une priorité" />
-            </SelectTrigger>
-
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>site expédition</SelectLabel>
-                {/* {expedition.map((p) => (
-                  <SelectItem key={p.code} value={p.code}>
-                    {p.name}
-                  </SelectItem>
-                ))} */}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col">
           <Label className="mb-2 block">Priorité livraison</Label>
           <Select onValueChange={handlePriority} value={selectedPriority}>
             <SelectTrigger className="w-[280px]">

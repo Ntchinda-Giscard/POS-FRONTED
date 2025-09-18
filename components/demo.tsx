@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  fetchProducts,
+  fetchCustomers,
+  createSalesOrder,
+  processPayment,
+  finalizeOrder,
+  searchProducts,
+} from "@/lib/api";
+import {
+  createTransaction,
+  calculateTransactionTotals,
+} from "@/lib/transaction-utils";
+import { CustomerSelector } from "@/components/customer-selector";
+import { TransactionConfirmation } from "@/components/transaction-confirmation";
+import { Sidebar } from "@/components/sidebar";
+import { CashDrawerManager } from "@/components/cash-drawer-manager";
+import { SettingsPanel } from "@/components/settings-panel";
+import { ReceiptGenerator } from "@/components/receipt-generator";
+import type {
+  Product,
+  TransactionItem,
+  Customer,
+  Transaction,
+} from "@/types/pos";
 import {
   ShoppingCart,
   Search,
@@ -31,108 +55,42 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTheme } from "next-themes";
 
-// Mock data to replace API calls
-const mockProducts = [
-  {
-    item_code: "WH001",
-    describtion: "Wireless Headphones",
-    base_price: 99.99,
-    categorie: "Electronics",
-    stock: 15,
-    image: "/wireless-headphones.jpg", // Updated to use jpg extension
-    barcode: "123456789012",
-  },
-  {
-    item_code: "CB001",
-    describtion: "Premium Coffee Beans",
-    base_price: 24.99,
-    categorie: "Food",
-    stock: 8,
-    image: "/pile-of-coffee-beans.jpg",
-    barcode: "123456789013",
-  },
-  {
-    item_code: "FW001",
-    describtion: "Fitness Watch",
-    base_price: 199.99,
-    categorie: "Electronics",
-    stock: 3,
-    image: "/fitness-watch.jpg",
-    barcode: "123456789014",
-  },
-  {
-    item_code: "LW001",
-    describtion: "Leather Wallet",
-    base_price: 49.99,
-    categorie: "Accessories",
-    stock: 12,
-    image: "/leather-wallet.jpg",
-    barcode: "123456789015",
-  },
-  {
-    item_code: "BS001",
-    describtion: "Bluetooth Speaker",
-    base_price: 79.99,
-    categorie: "Electronics",
-    stock: 0,
-    image: "/bluetooth-speaker.jpg",
-    barcode: "123456789016",
-  },
-  {
-    item_code: "OT001",
-    describtion: "Organic Tea",
-    base_price: 18.99,
-    categorie: "Food",
-    stock: 25,
-    image: "/organic-tea.jpg",
-    barcode: "123456789017",
-  },
-];
+import { useTheme } from "next-themes";
+import HeaderCommande from "@/components/header-commande";
+import GestionCommande from "@/components/gestion";
+import Livraison from "@/components/livraison";
+import Facturation from "@/components/facturation";
+import useSiteVenteStore from "@/stores/site-store";
+import SiteExpedition from "@/components/select-site-epedition";
+import useSiteExpeditionStore from "@/stores/expedition-store";
 
 const tabs = [
   {
     name: "En-tête",
     value: "header",
-    content: (
-      <div className="p-4 text-center text-muted-foreground">
-        Header Configuration
-      </div>
-    ),
+    content: <HeaderCommande />,
   },
   {
     name: "Gestion",
     value: "gestion",
-    content: (
-      <div className="p-4 text-center text-muted-foreground">
-        Management Settings
-      </div>
-    ),
+    content: <GestionCommande />,
   },
   {
     name: "Livraison",
     value: "livraison",
-    content: (
-      <div className="p-4 text-center text-muted-foreground">
-        Delivery Options
-      </div>
-    ),
+    content: <Livraison />,
   },
   {
     name: "Facturation",
     value: "facturation",
-    content: (
-      <div className="p-4 text-center text-muted-foreground">
-        Billing Configuration
-      </div>
-    ),
+    content: <Facturation />,
   },
 ];
 
 interface CartItem {
   productId: string;
-  product: (typeof mockProducts)[0];
+  product: Product;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -140,37 +98,111 @@ interface CartItem {
 
 export default function POSApp() {
   const [currentView, setCurrentView] = useState("pos");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<TransactionItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCustomer, setSelectedCustomer] = useState<
+    Customer | undefined
+  >();
+  const [completedTransaction, setCompletedTransaction] =
+    useState<Transaction | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transactionHistory, setTransactionHistory] = useState<any[]>([]);
-  const [products] = useState(mockProducts);
-  const [isLoadingProducts] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [transactionHistory, setTransactionHistory] = useState<Transaction[]>(
+    []
+  );
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [productQuantities, setProductQuantities] = useState<
     Record<string, number>
   >({});
   const [showQuantityControls, setShowQuantityControls] = useState<
     Record<string, boolean>
   >({});
+  const [cashDrawerOpen, setCashDrawerOpen] = useState(false);
+  const [cashDrawerAmount, setCashDrawerAmount] = useState(200.0);
+  const [openingAmount, setOpeningAmount] = useState(200.0);
+  const [cashTransactions, setCashTransactions] = useState<
+    Array<{
+      id: string;
+      type: "sale" | "refund" | "cash_in" | "cash_out";
+      amount: number;
+      timestamp: Date;
+      description: string;
+    }>
+  >([]);
 
-  const { theme, setTheme } = useTheme();
+  const [showReceiptGenerator, setShowReceiptGenerator] = useState(false);
+
+  const siteExoeditionCode = useSiteExpeditionStore(
+    (state) => state.selectedadressExpeditionCode
+  );
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      console.log("[v0] Loading initial data from API...");
+
+      const productsResponse = await fetchProducts(siteExoeditionCode);
+      if (productsResponse.success && productsResponse.data) {
+        setProducts(productsResponse.data);
+        console.log("[v0] Products loaded:", productsResponse.data.length);
+      } else {
+        setApiError(productsResponse.error || "Failed to load products");
+        console.error("[v0] Error loading products:", productsResponse.error);
+      }
+      setIsLoadingProducts(false);
+
+      const customersResponse = await fetchCustomers();
+      if (customersResponse.success && customersResponse.data) {
+        setCustomers(customersResponse.data);
+        console.log("[v0] Customers loaded:", customersResponse.data.length);
+      } else {
+        console.error("[v0] Error loading customers:", customersResponse.error);
+      }
+      setIsLoadingCustomers(false);
+    };
+
+    loadInitialData();
+  }, [siteExoeditionCode]);
+
+  useEffect(() => {
+    const performSearch = async () => {
+      if (searchTerm.trim()) {
+        console.log("[v0] Searching products for:", searchTerm);
+        const searchResponse = await searchProducts(
+          siteExoeditionCode,
+          searchTerm
+        );
+        if (searchResponse.success && searchResponse.data) {
+          setProducts(searchResponse.data);
+        }
+      } else {
+        const productsResponse = await fetchProducts(siteExoeditionCode);
+        if (productsResponse.success && productsResponse.data) {
+          setProducts(productsResponse.data);
+        }
+      }
+    };
+
+    const debounceTimer = setTimeout(performSearch, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm]);
 
   const categories = [
     "all",
-    ...Array.from(new Set(products.map((p) => p.categorie))),
+    ...Array.from(
+      new Set(products.map((p: { categorie: any }) => p.categorie))
+    ),
   ];
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = products.filter((product: { categorie: any }) => {
     const matchesCategory =
       selectedCategory === "all" || product.categorie === selectedCategory;
-    const matchesSearch =
-      product.describtion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.barcode.includes(searchTerm);
-    return matchesCategory && matchesSearch;
+    return matchesCategory;
   });
 
   const getStockStatus = (stock: number) => {
@@ -193,23 +225,18 @@ export default function POSApp() {
     };
   };
 
-  const addToCart = (product: (typeof mockProducts)[0]) => {
-    const quantity = productQuantities[product.item_code] || 1;
+  const addToCart = (product: Product) => {
+    if (product.stock === 0) return;
 
     const button = document.querySelector(
       `[data-product-id="${product.item_code}"]`
     );
     if (button) {
-      button.classList.add("animate-bounce");
-      setTimeout(() => button.classList.remove("animate-bounce"), 600);
+      button.classList.add("animate-pulse");
+      setTimeout(() => button.classList.remove("animate-pulse"), 300);
     }
 
-    setShowQuantityControls((prev) => ({
-      ...prev,
-      [product.item_code]: true,
-    }));
-
-    setCart((prev) => {
+    setCart((prev: any[]) => {
       const existingItem = prev.find(
         (item) => item.productId === product.item_code
       );
@@ -218,8 +245,8 @@ export default function POSApp() {
           item.productId === product.item_code
             ? {
                 ...item,
-                quantity: item.quantity + quantity,
-                totalPrice: (item.quantity + quantity) * item.unitPrice,
+                quantity: item.quantity + 1,
+                totalPrice: (item.quantity + 1) * item.unitPrice,
               }
             : item
         );
@@ -229,16 +256,18 @@ export default function POSApp() {
         {
           productId: product.item_code,
           product,
-          quantity,
+          quantity: 1,
           unitPrice: product.base_price,
-          totalPrice: product.base_price * quantity,
+          totalPrice: product.base_price,
         },
       ];
     });
   };
 
   const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.productId !== productId));
+    setCart((prev: any[]) =>
+      prev.filter((item) => item.productId !== productId)
+    );
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
@@ -246,7 +275,7 @@ export default function POSApp() {
       removeFromCart(productId);
       return;
     }
-    setCart((prev) =>
+    setCart((prev: any[]) =>
       prev.map((item) =>
         item.productId === productId
           ? { ...item, quantity, totalPrice: quantity * item.unitPrice }
@@ -257,26 +286,7 @@ export default function POSApp() {
 
   const clearCart = () => {
     setCart([]);
-  };
-
-  const updateProductQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setProductQuantities((prev) => {
-        const newQuantities = { ...prev };
-        delete newQuantities[productId];
-        return newQuantities;
-      });
-      setShowQuantityControls((prev) => ({
-        ...prev,
-        [productId]: false,
-      }));
-      return;
-    }
-
-    setProductQuantities((prev) => ({
-      ...prev,
-      [productId]: Math.max(1, quantity),
-    }));
+    setSelectedCustomer(undefined);
   };
 
   const processTransaction = async (
@@ -285,31 +295,156 @@ export default function POSApp() {
     if (cart.length === 0) return;
 
     setIsProcessing(true);
+    console.log("[v0] Processing transaction with method:", paymentMethod);
 
-    // Simulate processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const guestCustomer: Customer = {
+        id: "guest",
+        name: "Guest",
+        email: "",
+        phone: "",
+        defaultDeliveryLocationId: "1",
+        customerCode: "",
+        creditLimit: 0,
+        paymentTerms: "",
+        isActive: false,
+        totalPurchases: 0,
+      };
 
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      items: cart,
-      total: cart.reduce((sum, item) => sum + item.totalPrice, 0),
-      paymentMethod,
-      timestamp: new Date(),
-      status: "completed",
-    };
+      const orderData = {
+        customerId: selectedCustomer?.id || guestCustomer.id,
+        customer: selectedCustomer || guestCustomer,
+        deliveryLocationId:
+          selectedCustomer?.defaultDeliveryLocationId ??
+          guestCustomer.defaultDeliveryLocationId,
+        deliveryLocation: null,
+        items: cart.map(
+          (item: {
+            productId: any;
+            product: any;
+            quantity: any;
+            unitPrice: any;
+            totalPrice: any;
+          }) => ({
+            id: `item-${Date.now()}-${item.productId}`,
+            productId: item.productId,
+            product: item.product,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: 0,
+            totalPrice: item.totalPrice,
+            reservedStock: item.quantity,
+          })
+        ),
+        subtotal: calculateTransactionTotals(cart).subtotal,
+        tax: calculateTransactionTotals(cart).tax,
+        discount: 0,
+        total: calculateTransactionTotals(cart).total,
+        status: "draft" as const,
+        createdBy: "cashier1",
+        priority: "normal" as const,
+        expectedDeliveryDate: new Date(Date.now() + 86400000),
+        modifications: [],
+      };
+      //@ts-ignore
+      const orderResponse = await createSalesOrder(orderData);
+      if (!orderResponse.success || !orderResponse.data) {
+        throw new Error(orderResponse.error || "Failed to create order");
+      }
 
-    setTransactionHistory((prev) => [transaction, ...prev]);
-    clearCart();
-    setIsCartOpen(false);
-    setIsProcessing(false);
+      console.log("[v0] Order created:", orderResponse.data.orderNumber);
+
+      const paymentResponse = await processPayment({
+        orderId: orderResponse.data.id,
+        amount: orderResponse.data.total,
+        method: paymentMethod,
+      });
+
+      if (!paymentResponse.success || !paymentResponse.data) {
+        throw new Error(paymentResponse.error || "Payment processing failed");
+      }
+
+      console.log(
+        "[v0] Payment processed:",
+        paymentResponse.data.transactionId
+      );
+
+      const finalizeResponse = await finalizeOrder(orderResponse.data.id);
+      if (!finalizeResponse.success) {
+        throw new Error(finalizeResponse.error || "Failed to finalize order");
+      }
+
+      const transaction = createTransaction(
+        cart,
+        paymentMethod,
+        selectedCustomer
+      );
+      transaction.status = "completed";
+
+      if (paymentMethod === "cash") {
+        setCashDrawerAmount((prev: number) => prev + transaction.total);
+        setCashTransactions((prev: any) => [
+          ...prev,
+          {
+            id: `cash-${Date.now()}`,
+            type: "sale",
+            amount: transaction.total,
+            timestamp: new Date(),
+            description: `Sale #${transaction.id.slice(-6)}`,
+          },
+        ]);
+      }
+
+      setTransactionHistory((prev: any) => [transaction, ...prev]);
+
+      setCompletedTransaction(transaction);
+
+      clearCart();
+      setIsCartOpen(false);
+
+      console.log("[v0] Transaction completed successfully");
+    } catch (error) {
+      console.error("[v0] Transaction failed:", error);
+      setApiError(
+        error instanceof Error ? error.message : "Transaction failed"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+  const handlePrintReceipt = () => {
+    console.log(
+      "[v0] Print receipt clicked, completedTransaction:",
+      completedTransaction
+    );
+    if (!completedTransaction) {
+      console.log("[v0] No completed transaction available for receipt");
+      return;
+    }
+    console.log("[v0] Opening receipt generator");
+    setShowReceiptGenerator(true);
+  };
+
+  const { subtotal, tax, total } = calculateTransactionTotals(cart);
+  const { theme, setTheme } = useTheme();
 
   const renderCurrentView = () => {
     switch (currentView) {
+      case "cash-drawer":
+        return (
+          <CashDrawerManager
+            isOpen={cashDrawerOpen}
+            currentAmount={cashDrawerAmount}
+            openingAmount={openingAmount}
+            onToggle={() => setCashDrawerOpen(!cashDrawerOpen)}
+            onAmountChange={setCashDrawerAmount}
+            onSetOpeningAmount={setOpeningAmount}
+            transactions={cashTransactions}
+          />
+        );
+      case "settings":
+        return <SettingsPanel />;
       case "dashboard":
         return (
           <div className="space-y-6">
@@ -385,6 +520,26 @@ export default function POSApp() {
       default:
         return (
           <div className="space-y-6">
+            {apiError && (
+              <Card className="border-destructive">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="font-medium">API Error:</span>
+                    <span>{apiError}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setApiError(null)}
+                      className="ml-auto"
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="transition-all duration-200 hover:shadow-lg overflow-y-scroll h-screen">
               <CardHeader>
                 <CardTitle className="flex flex-col items-start gap-2">
@@ -406,7 +561,7 @@ export default function POSApp() {
                     </TabsList>
                     {tabs.map((tab) => (
                       <TabsContent key={tab.value} value={tab.value}>
-                        <div className="flex items-center justify-between border gap-2 rounded-md px-4 py-4 w-fit">
+                        <div className=" flex items-center justify-between border gap-2 rounded-md px-4 py-4 w-fit">
                           {tab.content}
                         </div>
                       </TabsContent>
@@ -445,6 +600,7 @@ export default function POSApp() {
                       className="pl-10 transition-all duration-200 focus:ring-2"
                     />
                   </div>
+                  <SiteExpedition />
                   <div className="flex gap-2 flex-wrap">
                     {categories.map((category) => (
                       <Button
@@ -476,171 +632,101 @@ export default function POSApp() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredProducts.map((product, index) => {
-                    const stockStatus = getStockStatus(product.stock);
-                    const quantity = productQuantities[product.item_code] || 1;
-                    const showControls =
-                      showQuantityControls[product.item_code];
-
-                    return (
-                      <Card
-                        key={product.item_code}
-                        className={`cursor-pointer transition-all duration-500 hover:shadow-lg animate-in zoom-in-95 ${
-                          product.stock === 0
-                            ? "opacity-60"
-                            : "hover:scale-[1.02] hover:-translate-y-1"
-                        }`}
-                        style={{
-                          animationDelay: `${index * 100}ms`,
-                          animationDuration: "500ms",
-                        }}
-                      >
-                        <CardContent className="p-4">
-                          <div className="relative mb-3">
-                            <Image
-                              src={
-                                product.image ||
-                                "/placeholder.svg?height=120&width=120&query=product"
-                              }
-                              alt={product.describtion}
-                              width={120}
-                              height={120}
-                              className="w-full h-24 object-cover rounded-md bg-muted transition-transform duration-200 hover:scale-105"
-                            />
-                            {product.stock <= 10 && product.stock > 0 && (
-                              <div className="absolute top-2 right-2 animate-pulse">
-                                <AlertTriangle className="h-4 w-4 text-orange-500" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-start">
-                              <h3 className="font-semibold text-sm leading-tight">
-                                {product.describtion}
-                              </h3>
-                              <Badge
-                                variant={stockStatus.variant}
-                                className="ml-2 text-xs"
-                              >
-                                {product.stock}
-                              </Badge>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                                {product.categorie}
-                              </span>
-                              <span
-                                className={`text-xs font-medium ${stockStatus.color}`}
-                              >
-                                {stockStatus.label}
-                              </span>
-                            </div>
-
-                            {showControls && (
-                              <div className="flex items-center justify-between animate-in zoom-in-95 duration-500">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                  Quantity:
-                                </span>
-                                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-6 w-6 p-0 hover:bg-background transition-all duration-200 hover:scale-110 animate-in zoom-in-95 duration-300"
-                                    onClick={() =>
-                                      updateProductQuantity(
-                                        product.item_code,
-                                        quantity - 1
-                                      )
-                                    }
-                                    style={{ animationDelay: "100ms" }}
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </Button>
-                                  <Input
-                                    type="number"
-                                    value={quantity}
-                                    onChange={(e) =>
-                                      updateProductQuantity(
-                                        product.item_code,
-                                        Number.parseInt(e.target.value) || 0
-                                      )
-                                    }
-                                    className="w-10 h-6 text-center border-0 bg-transparent text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none animate-in zoom-in-95 duration-300"
-                                    min={0}
-                                    max={99}
-                                    style={{ animationDelay: "200ms" }}
-                                  />
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-6 w-6 p-0 hover:bg-background transition-all duration-200 hover:scale-110 animate-in zoom-in-95 duration-300"
-                                    onClick={() =>
-                                      updateProductQuantity(
-                                        product.item_code,
-                                        quantity + 1
-                                      )
-                                    }
-                                    disabled={quantity >= 99}
-                                    style={{ animationDelay: "300ms" }}
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
+                {isLoadingProducts ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      Loading products...
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Fetching product catalog from API
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredProducts.map((product) => {
+                      const stockStatus = getStockStatus(product.stock);
+                      return (
+                        <Card
+                          key={product.item_code}
+                          className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                            product.stock === 0
+                              ? "opacity-60"
+                              : "hover:scale-[1.02] hover:-translate-y-1"
+                          }`}
+                        >
+                          <CardContent className="p-4">
+                            <div className="relative mb-3">
+                              <Image
+                                src={
+                                  product.image ||
+                                  "/placeholder.svg?height=120&width=120&query=product"
+                                }
+                                alt={product.describtion}
+                                width={120}
+                                height={120}
+                                className="w-full h-24 object-cover rounded-md bg-muted transition-transform duration-200 hover:scale-105"
+                              />
+                              {product.stock <= 10 && product.stock > 0 && (
+                                <div className="absolute top-2 right-2 animate-pulse">
+                                  <AlertTriangle className="h-4 w-4 text-orange-500" />
                                 </div>
-                              </div>
-                            )}
-
-                            <div className="flex justify-between items-center pt-2">
-                              <div className="flex flex-col">
-                                <span className="text-xs text-muted-foreground">
-                                  {showControls ? "Total:" : "Price:"}
-                                </span>
-                                <div className="relative overflow-hidden">
-                                  <span
-                                    className={`font-bold text-primary transition-all duration-300 ${
-                                      showControls
-                                        ? quantity > 1
-                                          ? "text-lg"
-                                          : "text-base"
-                                        : "text-base"
-                                    }`}
-                                  >
-                                    $
-                                    {showControls
-                                      ? (product.base_price * quantity).toFixed(
-                                          2
-                                        )
-                                      : product.base_price.toFixed(2)}
-                                  </span>
-                                </div>
-                              </div>
-                              {!showControls && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => addToCart(product)}
-                                  className="min-w-[80px] transition-all duration-200 hover:scale-105 animate-in zoom-in-95 duration-300"
-                                  data-product-id={product.item_code}
-                                >
-                                  Add to Cart
-                                </Button>
                               )}
                             </div>
 
-                            {product.barcode && (
-                              <div className="text-xs text-muted-foreground font-mono">
-                                {product.barcode}
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-start">
+                                <h3 className="font-semibold text-sm leading-tight">
+                                  {product.describtion}
+                                </h3>
+                                <Badge
+                                  variant={stockStatus.variant}
+                                  className="ml-2 text-xs"
+                                >
+                                  {product.stock}
+                                </Badge>
                               </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
 
-                {filteredProducts.length === 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                  {product.categorie}
+                                </span>
+                                <span
+                                  className={`text-xs font-medium ${stockStatus.color}`}
+                                >
+                                  {stockStatus.label}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between items-center pt-2">
+                                <span className="text-lg font-bold text-primary">
+                                  ${product.base_price.toFixed(2)}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  onClick={() => addToCart(product)}
+                                  disabled={product.stock === 0}
+                                  className="min-w-[60px] transition-all duration-200 hover:scale-105"
+                                  data-product-id={product.item_code}
+                                >
+                                  {product.stock === 0 ? "Sold Out" : "Add"}
+                                </Button>
+                              </div>
+
+                              {product.barcode && (
+                                <div className="text-xs text-muted-foreground font-mono">
+                                  {product.barcode}
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {!isLoadingProducts && filteredProducts.length === 0 && (
                   <div className="text-center py-12">
                     <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">
@@ -662,57 +748,18 @@ export default function POSApp() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Simplified Sidebar */}
-      <div
-        className={`${
-          sidebarOpen ? "w-64" : "w-16"
-        } transition-all duration-300 bg-muted/50 border-r flex flex-col`}
-      >
-        <div className="p-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-full justify-start"
-          >
-            <Menu className="h-4 w-4" />
-            {sidebarOpen && <span className="ml-2">Menu</span>}
-          </Button>
-        </div>
-        <div className="flex-1 space-y-2 p-2">
-          <Button
-            variant={currentView === "pos" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setCurrentView("pos")}
-            className="w-full justify-start"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            {sidebarOpen && <span className="ml-2">POS</span>}
-          </Button>
-          <Button
-            variant={currentView === "dashboard" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setCurrentView("dashboard")}
-            className="w-full justify-start"
-          >
-            <Sparkles className="h-4 w-4" />
-            {sidebarOpen && <span className="ml-2">Dashboard</span>}
-          </Button>
-          <Button
-            variant={currentView === "history" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setCurrentView("history")}
-            className="w-full justify-start"
-          >
-            <Package className="h-4 w-4" />
-            {sidebarOpen && <span className="ml-2">History</span>}
-          </Button>
-        </div>
-      </div>
+      <Sidebar
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        transactionHistory={transactionHistory}
+        cashDrawerOpen={cashDrawerOpen}
+        onToggleCashDrawer={() => setCashDrawerOpen(!cashDrawerOpen)}
+        cashDrawerAmount={cashDrawerAmount}
+      />
 
-      <div className="flex-1 p-4 lg:p-6">
+      <div className="flex-1 p-4 lg:p-6 lg:ml-0">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-6">
+          <div className="mb-6 ml-0 lg:ml-0">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-3xl font-bold text-foreground">
                 {currentView === "pos"
@@ -721,6 +768,10 @@ export default function POSApp() {
                   ? "Sales Dashboard"
                   : currentView === "history"
                   ? "Transaction History"
+                  : currentView === "cash-drawer"
+                  ? "Cash Drawer"
+                  : currentView === "settings"
+                  ? "Settings"
                   : "POS System"}
               </h1>
               <Button
@@ -739,11 +790,15 @@ export default function POSApp() {
             <div className="flex items-center justify-between flex-1">
               <p className="text-muted-foreground">
                 {currentView === "pos"
-                  ? "Interactive article cards with quantity controls"
+                  ? "Modern retail management system"
                   : currentView === "dashboard"
                   ? "Analytics and insights"
                   : currentView === "history"
                   ? "View all transactions"
+                  : currentView === "cash-drawer"
+                  ? "Manage cash drawer operations"
+                  : currentView === "settings"
+                  ? "Configure system settings and preferences"
                   : "Professional point of sale system"}
               </p>
               {transactionHistory.length > 0 && currentView === "pos" && (
@@ -759,7 +814,6 @@ export default function POSApp() {
 
           {renderCurrentView()}
 
-          {/* Cart Dialog */}
           <Dialog open={isCartOpen} onOpenChange={() => {}}>
             <DialogContent
               className="max-w-md max-h-[90vh] overflow-hidden"
@@ -796,7 +850,14 @@ export default function POSApp() {
                   </div>
                 ) : (
                   <>
-                    <div className="max-h-64 space-y-3 overflow-y-auto">
+                    <CustomerSelector
+                      selectedCustomer={selectedCustomer}
+                      onCustomerSelect={setSelectedCustomer}
+                    />
+
+                    <Separator />
+
+                    <div className="max-h-64 space-y-3">
                       {cart.map((item, index) => (
                         <div
                           key={item.productId}
@@ -888,7 +949,7 @@ export default function POSApp() {
                         <CreditCard className="h-4 w-4 mr-2" />
                         {isProcessing ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                             Processing...
                           </>
                         ) : (
@@ -933,6 +994,19 @@ export default function POSApp() {
               </div>
             </DialogContent>
           </Dialog>
+
+          <TransactionConfirmation
+            transaction={completedTransaction}
+            isOpen={!!completedTransaction}
+            onClose={() => setCompletedTransaction(null)}
+            onPrintReceipt={handlePrintReceipt}
+          />
+
+          <ReceiptGenerator
+            transaction={completedTransaction}
+            isOpen={showReceiptGenerator}
+            onClose={() => setShowReceiptGenerator(false)}
+          />
         </div>
       </div>
     </div>

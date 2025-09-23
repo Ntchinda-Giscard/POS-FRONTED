@@ -3,6 +3,7 @@ export interface Product {
   describtion: string;
   base_price: number;
   categorie: string;
+  unit_sales?: string;
   stock: number;
   barcode?: string;
   image?: string;

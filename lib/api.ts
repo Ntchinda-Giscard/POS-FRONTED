@@ -41,6 +41,15 @@ type CondFactType = {
   code: string;
 };
 
+type Pricing = {
+  gratuit: Array<unknown>;
+  items_code: string;
+  subtotal: number;
+  prix_brut: number;
+  prix_net: number;
+  total_HT: number;
+};
+
 async function isApiAvailable(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/health`, {
@@ -621,6 +630,39 @@ export async function finalizeOrder(
       data: mockFinalizedOrder,
       isFromMock: true,
       error: "API not available - order finalized locally",
+    };
+  }
+}
+
+export type PricingRequest = {
+  item_code: string;
+  quantity: string;
+  customer_code: string;
+  currency: string;
+  unit_of_measure: string;
+};
+// API pour calculer le prix de l'article avec les remises et taxes
+export async function fetchPricing(
+  requests: PricingRequest[]
+): Promise<ApiResponse<Pricing[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pricing/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requests),
+    });
+    if (!response.ok) throw new Error("Failed to fetch pricing");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.warn("[v0] API not available, finalizing order locally");
+    return {
+      success: false,
+      error: "API not available - pricing could not be fetched",
+      data: [],
+      isFromMock: true,
     };
   }
 }

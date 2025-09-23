@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,16 @@ import HeaderCommande from "@/components/header-commande";
 import GestionCommande from "@/components/gestion";
 import Livraison from "@/components/livraison";
 import Facturation from "@/components/facturation";
-
+import SiteExpedition from "@/components/select-site-epedition";
+import useSiteExpeditionStore from "@/stores/expedition-store";
+import {
+  fetchCustomers,
+  fetchPricing,
+  fetchProducts,
+  PricingRequest,
+} from "@/lib/api";
+import { Customer, Product } from "@/types/pos";
+import useClientStore from "@/stores/client-store";
 // Mock data to replace API calls
 const mockProducts = [
   {
@@ -119,14 +128,18 @@ const tabs = [
 ];
 
 interface CartItem {
-  productId: string;
-  product: (typeof mockProducts)[0];
+  item_code: string;
+  customer_code: string;
+  product: Product;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
 }
 
 export default function POSApp() {
+  const selectedClientCode = useClientStore(
+    (state) => state.selectedClientCode
+  );
   const [currentView, setCurrentView] = useState("pos");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -134,9 +147,13 @@ export default function POSApp() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionHistory, setTransactionHistory] = useState<any[]>([]);
-  const [products] = useState(mockProducts);
-  const [isLoadingProducts] = useState(false);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const [productQuantities, setProductQuantities] = useState<
     Record<string, number>
@@ -146,6 +163,9 @@ export default function POSApp() {
   >({});
 
   const { theme, setTheme } = useTheme();
+  const siteExoeditionCode = useSiteExpeditionStore(
+    (state) => state.selectedadressExpeditionCode
+  );
 
   const categories = [
     "all",
@@ -157,7 +177,7 @@ export default function POSApp() {
       selectedCategory === "all" || product.categorie === selectedCategory;
     const matchesSearch =
       product.describtion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.barcode.includes(searchTerm);
+      product.item_code.includes(searchTerm);
     return matchesCategory && matchesSearch;
   });
 
@@ -181,7 +201,7 @@ export default function POSApp() {
     };
   };
 
-  const addToCart = (product: (typeof mockProducts)[0]) => {
+  const addToCart = (product: Product) => {
     const quantity = productQuantities[product.item_code] || 1;
 
     const button = document.querySelector(
@@ -199,13 +219,14 @@ export default function POSApp() {
 
     setCart((prev) => {
       const existingItem = prev.find(
-        (item) => item.productId === product.item_code
+        (item) => item.item_code === product.item_code
       );
       if (existingItem) {
         return prev.map((item) =>
-          item.productId === product.item_code
+          item.item_code === product.item_code
             ? {
                 ...item,
+                customer_code: selectedClientCode,
                 quantity: item.quantity + quantity,
                 totalPrice: (item.quantity + quantity) * item.unitPrice,
               }
@@ -215,7 +236,8 @@ export default function POSApp() {
       return [
         ...prev,
         {
-          productId: product.item_code,
+          customer_code: selectedClientCode,
+          item_code: product.item_code,
           product,
           quantity,
           unitPrice: product.base_price,
@@ -225,46 +247,288 @@ export default function POSApp() {
     });
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.productId !== productId));
+  const removeFromCart = (item_code: string) => {
+    setCart((prev) => prev.filter((item) => item.item_code !== item_code));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  // const updateQuantity = async (item_code: string, quantity: number) => {
+  //   if (quantity <= 0) {
+  //     removeFromCart(item_code);
+  //     return;
+  //   }
+  //   console.log("Uploading", cart);
+  //   setCart((prev) =>
+  //     prev.map((item) =>
+  //       item.item_code === item_code
+  //         ? {
+  //             ...item,
+  //             customer_code: selectedClientCode,
+  //             quantity,
+  //             totalPrice: quantity * item.unitPrice,
+  //           }
+  //         : item
+  //     )
+  //   );
+
+  //   const mappedRequests: PricingRequest[] = cart.map((item: CartItem) => ({
+  //     item_code: item.item_code,
+  //     quantity: item.quantity.toString(),
+  //     customer_code: item.customer_code,
+  //     currency: "EUR", // or whichever currency you use
+  //     unit_of_measure: item.product.unit_sales,
+  //     // order_date: new Date().toISOString(),
+  //   }));
+  //   const pricing = await fetchPricing(mappedRequests);
+  //   console.log("Pricing response: ====>", pricing);
+  // };
+
+  const updateQuantity = async (item_code: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(item_code);
       return;
     }
-    setCart((prev) =>
-      prev.map((item) =>
-        item.productId === productId
-          ? { ...item, quantity, totalPrice: quantity * item.unitPrice }
-          : item
-      )
+
+    // First, update the cart with the new quantity
+    const updatedCart = cart.map((item) =>
+      item.item_code === item_code
+        ? {
+            ...item,
+            customer_code: selectedClientCode,
+            quantity,
+            // Keep the existing unitPrice for now, will be updated with API response
+            totalPrice: quantity * item.unitPrice,
+          }
+        : item
     );
+
+    // Update the cart state with new quantity
+    setCart(updatedCart);
+
+    // Create pricing requests using the updated cart
+    const mappedRequests: PricingRequest[] = updatedCart.map(
+      (item: CartItem) => ({
+        item_code: item.item_code,
+        quantity: item.quantity.toString(),
+        customer_code: item.customer_code,
+        currency: "EUR",
+        unit_of_measure: item.product.unit_sales,
+      })
+    );
+
+    try {
+      console.log("Fetching pricing for:", mappedRequests);
+      const pricingResponse = await fetchPricing(mappedRequests);
+      console.log("Pricing response: ====>", pricingResponse.data);
+
+      // Update cart with the pricing response
+      setCart((prevCart) =>
+        prevCart.map((cartItem) => {
+          // Find the corresponding pricing data for this cart item
+          const pricingData = pricingResponse.data.find(
+            (priceItem: any) => priceItem.item_code === cartItem.item_code
+          );
+
+          if (pricingData) {
+            // Check if backend pricing is zero or null/undefined
+            const backendUnitPrice = pricingData.prix_net;
+            const backendTotalPrice = pricingData.total_HT;
+            const backendGrossPrice = pricingData.prix_brut;
+
+            // Check if all backend pricing values are zero or null/undefined
+            const hasValidBackendPricing =
+              (backendUnitPrice && backendUnitPrice > 0) ||
+              (backendTotalPrice && backendTotalPrice > 0) ||
+              (backendGrossPrice && backendGrossPrice > 0);
+
+            // Use backend pricing if any value is greater than 0, otherwise fallback to base price
+            const finalUnitPrice =
+              hasValidBackendPricing && backendUnitPrice > 0
+                ? backendUnitPrice
+                : cartItem.product.base_price;
+
+            const finalTotalPrice =
+              hasValidBackendPricing && backendTotalPrice > 0
+                ? backendTotalPrice
+                : finalUnitPrice * cartItem.quantity;
+
+            console.log(
+              `Item ${cartItem.item_code}: Backend prices - net: ${backendUnitPrice}, total: ${backendTotalPrice}, gross: ${backendGrossPrice}, Using unit price: ${finalUnitPrice}`
+            );
+
+            return {
+              ...cartItem,
+              unitPrice: finalUnitPrice,
+              totalPrice: finalTotalPrice,
+            };
+          }
+
+          // If no pricing data found, keep existing prices
+          return cartItem;
+        })
+      );
+    } catch (error) {
+      console.error("Error fetching pricing:", error);
+      // Handle error appropriately - maybe show a toast notification
+    }
   };
 
   const clearCart = () => {
     setCart([]);
   };
 
-  const updateProductQuantity = (productId: string, quantity: number) => {
+  // const updateProductQuantity = async (item_code: string, quantity: number) => {
+  //   if (quantity <= 0) {
+  //     setProductQuantities((prev) => {
+  //       const newQuantities = { ...prev };
+  //       delete newQuantities[item_code];
+  //       return newQuantities;
+  //     });
+  //     setCart((prev) =>
+  //       prev.map((item) =>
+  //         item.item_code === item_code
+  //           ? {
+  //               ...item,
+  //               customer_code: selectedClientCode,
+  //               quantity,
+  //               totalPrice: quantity * item.unitPrice,
+  //             }
+  //           : item
+  //       )
+  //     );
+
+  //     const mappedRequests: PricingRequest[] = cart.map((item: CartItem) => ({
+  //       item_code: item.item_code,
+  //       quantity: item.quantity.toString(),
+  //       customer_code: item.customer_code,
+  //       currency: "EUR", // or whichever currency you use
+  //       unit_of_measure: item.product.unit_sales,
+  //       // order_date: new Date().toISOString(),
+  //     }));
+  //     const pricing = await fetchPricing(mappedRequests);
+  //     console.log("Pricing response: ====>", pricing);
+  //     setShowQuantityControls((prev) => ({
+  //       ...prev,
+  //       [item_code]: false,
+  //     }));
+  //     return;
+  //   }
+
+  //   setProductQuantities((prev) => ({
+  //     ...prev,
+  //     [item_code]: Math.max(1, quantity),
+  //   }));
+  // };
+
+  const updateProductQuantity = async (item_code: string, quantity: number) => {
+    // Check if item is already in cart
+    const existingCartItem = cart.find((item) => item.item_code === item_code);
+
     if (quantity <= 0) {
+      // Remove from product quantities
       setProductQuantities((prev) => {
         const newQuantities = { ...prev };
-        delete newQuantities[productId];
+        delete newQuantities[item_code];
         return newQuantities;
       });
+
+      // Hide quantity controls
       setShowQuantityControls((prev) => ({
         ...prev,
-        [productId]: false,
+        [item_code]: false,
       }));
+
+      // If item exists in cart, remove it directly
+      if (existingCartItem) {
+        setCart((prev) => prev.filter((item) => item.item_code !== item_code));
+      }
+
       return;
     }
 
+    // Update product quantities for UI
     setProductQuantities((prev) => ({
       ...prev,
-      [productId]: Math.max(1, quantity),
+      [item_code]: Math.max(1, quantity),
     }));
+
+    // If item exists in cart, update it
+    if (existingCartItem) {
+      // First, update the cart with the new quantity
+      const updatedCart = cart.map((item) =>
+        item.item_code === item_code
+          ? {
+              ...item,
+              customer_code: selectedClientCode,
+              quantity,
+              totalPrice: quantity * item.unitPrice,
+            }
+          : item
+      );
+
+      // Update the cart state with new quantity
+      setCart(updatedCart);
+
+      // Create pricing requests using the updated cart
+      const mappedRequests: PricingRequest[] = updatedCart.map(
+        (item: CartItem) => ({
+          item_code: item.item_code,
+          quantity: item.quantity.toString(),
+          customer_code: item.customer_code,
+          currency: "EUR",
+          unit_of_measure: item.product.unit_sales,
+        })
+      );
+
+      try {
+        console.log("Fetching pricing for:", mappedRequests);
+        const pricingResponse = await fetchPricing(mappedRequests);
+        console.log("Pricing response: ====>", pricingResponse.data);
+
+        // Update cart with the pricing response
+        setCart((prevCart) =>
+          prevCart.map((cartItem) => {
+            const pricingData = pricingResponse.data?.find(
+              (priceItem: any) => priceItem.item_code === cartItem.item_code
+            );
+
+            if (pricingData) {
+              const backendUnitPrice = pricingData.prix_net;
+              const backendTotalPrice = pricingData.total_HT;
+              const backendGrossPrice = pricingData.prix_brut;
+
+              const hasValidBackendPricing =
+                (backendUnitPrice && backendUnitPrice > 0) ||
+                (backendTotalPrice && backendTotalPrice > 0) ||
+                (backendGrossPrice && backendGrossPrice > 0);
+
+              const finalUnitPrice =
+                hasValidBackendPricing && backendUnitPrice > 0
+                  ? backendUnitPrice
+                  : cartItem.product.base_price;
+
+              const finalTotalPrice =
+                hasValidBackendPricing && backendTotalPrice > 0
+                  ? backendTotalPrice
+                  : finalUnitPrice * cartItem.quantity;
+
+              console.log(
+                `Item ${cartItem.item_code}: Backend prices - net: ${backendUnitPrice}, total: ${backendTotalPrice}, gross: ${backendGrossPrice}, Using unit price: ${finalUnitPrice}`
+              );
+
+              return {
+                ...cartItem,
+                unitPrice: finalUnitPrice,
+                totalPrice: finalTotalPrice,
+              };
+            }
+
+            return cartItem;
+          })
+        );
+      } catch (error) {
+        console.error("Error fetching pricing:", error);
+      }
+    }
   };
 
   const processTransaction = async (
@@ -275,7 +539,7 @@ export default function POSApp() {
     setIsProcessing(true);
 
     // Simulate processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const transaction = {
       id: `txn-${Date.now()}`,
@@ -292,9 +556,47 @@ export default function POSApp() {
     setIsProcessing(false);
   };
 
+  useEffect(() => {
+    const loadInitialData = async () => {
+      console.log("[v0] Loading initial data from API...");
+
+      const productsResponse = await fetchProducts(siteExoeditionCode);
+      if (productsResponse.success && productsResponse.data) {
+        setProducts(productsResponse.data);
+        console.log("[v0] Products loaded:", productsResponse.data.length);
+      } else {
+        setApiError(productsResponse.error || "Failed to load products");
+        console.error("[v0] Error loading products:", productsResponse.error);
+      }
+      setIsLoadingProducts(false);
+
+      const customersResponse = await fetchCustomers();
+      if (customersResponse.success && customersResponse.data) {
+        setCustomers(customersResponse.data);
+        console.log("[v0] Customers loaded:", customersResponse.data.length);
+      } else {
+        console.error("[v0] Error loading customers:", customersResponse.error);
+      }
+      setIsLoadingCustomers(false);
+    };
+
+    loadInitialData();
+  }, [siteExoeditionCode]);
+
   const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
   const tax = subtotal * 0.08;
   const total = subtotal + tax;
+
+  useEffect(() => {
+    setIsAnimating(true);
+
+    // Start the animation
+    setTimeout(() => {
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 5); // Half of transition duration
+    }, 5); // Half of transition duration
+  }, [productQuantities]);
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -434,6 +736,7 @@ export default function POSApp() {
                     />
                   </div>
                   <div className="flex gap-2 flex-wrap">
+                    <SiteExpedition />
                     {categories.map((category) => (
                       <Button
                         key={category}
@@ -518,7 +821,8 @@ export default function POSApp() {
 
                             <div className="flex items-center justify-between">
                               <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                                {product.categorie}
+                                {/* {product.categorie} */}
+                                {product.item_code}
                               </span>
                               <span
                                 className={`text-xs font-medium ${stockStatus.color}`}
@@ -587,13 +891,7 @@ export default function POSApp() {
                                 </span>
                                 <div className="relative overflow-hidden">
                                   <span
-                                    className={`font-bold text-primary transition-all duration-300 ${
-                                      showControls
-                                        ? quantity > 1
-                                          ? "text-lg"
-                                          : "text-base"
-                                        : "text-base"
-                                    }`}
+                                    className={`inline-block transition-all duration-300 ease-in-out font-bold text-lg`}
                                   >
                                     $
                                     {showControls
@@ -787,7 +1085,7 @@ export default function POSApp() {
                     <div className="max-h-64 space-y-3 overflow-y-auto">
                       {cart.map((item, index) => (
                         <div
-                          key={item.productId}
+                          key={item.item_code}
                           className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 transition-all duration-200 hover:bg-muted animate-in slide-in-from-right-2"
                           style={{ animationDelay: `${index * 100}ms` }}
                         >
@@ -806,7 +1104,7 @@ export default function POSApp() {
                               {item.product.describtion}
                             </h4>
                             <p className="text-xs text-muted-foreground">
-                              ${item.unitPrice.toFixed(2)} each
+                              ${item.unitPrice} each
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
@@ -816,7 +1114,7 @@ export default function POSApp() {
                               className="h-6 w-6 p-0 bg-transparent transition-all duration-200 hover:scale-110"
                               onClick={() =>
                                 updateQuantity(
-                                  item.productId,
+                                  item.item_code,
                                   item.quantity - 1
                                 )
                               }
@@ -832,7 +1130,7 @@ export default function POSApp() {
                               className="h-6 w-6 p-0 bg-transparent transition-all duration-200 hover:scale-110"
                               onClick={() =>
                                 updateQuantity(
-                                  item.productId,
+                                  item.item_code,
                                   item.quantity + 1
                                 )
                               }
@@ -841,7 +1139,7 @@ export default function POSApp() {
                             </Button>
                           </div>
                           <span className="font-medium text-sm min-w-[60px] text-right">
-                            ${item.totalPrice.toFixed(2)}
+                            ${item.totalPrice}
                           </span>
                         </div>
                       ))}

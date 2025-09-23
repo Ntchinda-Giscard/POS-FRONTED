@@ -39,13 +39,18 @@ import Facturation from "@/components/facturation";
 import SiteExpedition from "@/components/select-site-epedition";
 import useSiteExpeditionStore from "@/stores/expedition-store";
 import {
+  fetchAppliedTaxes,
   fetchCustomers,
   fetchPricing,
   fetchProducts,
+  fetchTaxRegimes,
   PricingRequest,
+  Tax,
 } from "@/lib/api";
 import { Customer, Product } from "@/types/pos";
 import useClientStore from "@/stores/client-store";
+import useTaxeStore from "@/stores/taxe-store";
+import useCurrencyStore from "@/stores/currency-store";
 // Mock data to replace API calls
 const mockProducts = [
   {
@@ -167,6 +172,9 @@ export default function POSApp() {
     (state) => state.selectedadressExpeditionCode
   );
 
+  const { selectTaxeCode, setTaxeCode } = useTaxeStore();
+  const { selectedCurrencyCode, setCurrency } = useCurrencyStore();
+
   const categories = [
     "all",
     ...Array.from(new Set(products.map((p) => p.categorie))),
@@ -251,37 +259,6 @@ export default function POSApp() {
     setCart((prev) => prev.filter((item) => item.item_code !== item_code));
   };
 
-  // const updateQuantity = async (item_code: string, quantity: number) => {
-  //   if (quantity <= 0) {
-  //     removeFromCart(item_code);
-  //     return;
-  //   }
-  //   console.log("Uploading", cart);
-  //   setCart((prev) =>
-  //     prev.map((item) =>
-  //       item.item_code === item_code
-  //         ? {
-  //             ...item,
-  //             customer_code: selectedClientCode,
-  //             quantity,
-  //             totalPrice: quantity * item.unitPrice,
-  //           }
-  //         : item
-  //     )
-  //   );
-
-  //   const mappedRequests: PricingRequest[] = cart.map((item: CartItem) => ({
-  //     item_code: item.item_code,
-  //     quantity: item.quantity.toString(),
-  //     customer_code: item.customer_code,
-  //     currency: "EUR", // or whichever currency you use
-  //     unit_of_measure: item.product.unit_sales,
-  //     // order_date: new Date().toISOString(),
-  //   }));
-  //   const pricing = await fetchPricing(mappedRequests);
-  //   console.log("Pricing response: ====>", pricing);
-  // };
-
   const updateQuantity = async (item_code: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(item_code);
@@ -315,8 +292,16 @@ export default function POSApp() {
       })
     );
 
+    const mappedTaxRequests = updatedCart.map((item: CartItem) => ({
+      item_code: item.item_code,
+      regime_taxe_tiers: selectTaxeCode,
+    }));
+
     try {
+      console.log("Fetching taxes for:", mappedTaxRequests);
       console.log("Fetching pricing for:", mappedRequests);
+      const taxResponse = await fetchAppliedTaxes(mappedTaxRequests);
+      console.log("Applied taxes response: ====>", taxResponse.data);
       const pricingResponse = await fetchPricing(mappedRequests);
       console.log("Pricing response: ====>", pricingResponse.data);
 
@@ -324,8 +309,12 @@ export default function POSApp() {
       setCart((prevCart) =>
         prevCart.map((cartItem) => {
           // Find the corresponding pricing data for this cart item
-          const pricingData = pricingResponse.data.find(
+          const pricingData = pricingResponse.data?.find(
             (priceItem: any) => priceItem.item_code === cartItem.item_code
+          );
+
+          const taxData = taxResponse.data?.find(
+            (taxItem: Tax) => taxItem.item_code === cartItem.item_code
           );
 
           if (pricingData) {
@@ -357,8 +346,10 @@ export default function POSApp() {
 
             return {
               ...cartItem,
-              unitPrice: finalUnitPrice,
-              totalPrice: finalTotalPrice,
+              unitPrice:
+                finalUnitPrice * (taxData ? 1 + taxData.taux / 100 : 1),
+              totalPrice:
+                finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
             };
           }
 
@@ -371,53 +362,6 @@ export default function POSApp() {
       // Handle error appropriately - maybe show a toast notification
     }
   };
-
-  const clearCart = () => {
-    setCart([]);
-  };
-
-  // const updateProductQuantity = async (item_code: string, quantity: number) => {
-  //   if (quantity <= 0) {
-  //     setProductQuantities((prev) => {
-  //       const newQuantities = { ...prev };
-  //       delete newQuantities[item_code];
-  //       return newQuantities;
-  //     });
-  //     setCart((prev) =>
-  //       prev.map((item) =>
-  //         item.item_code === item_code
-  //           ? {
-  //               ...item,
-  //               customer_code: selectedClientCode,
-  //               quantity,
-  //               totalPrice: quantity * item.unitPrice,
-  //             }
-  //           : item
-  //       )
-  //     );
-
-  //     const mappedRequests: PricingRequest[] = cart.map((item: CartItem) => ({
-  //       item_code: item.item_code,
-  //       quantity: item.quantity.toString(),
-  //       customer_code: item.customer_code,
-  //       currency: "EUR", // or whichever currency you use
-  //       unit_of_measure: item.product.unit_sales,
-  //       // order_date: new Date().toISOString(),
-  //     }));
-  //     const pricing = await fetchPricing(mappedRequests);
-  //     console.log("Pricing response: ====>", pricing);
-  //     setShowQuantityControls((prev) => ({
-  //       ...prev,
-  //       [item_code]: false,
-  //     }));
-  //     return;
-  //   }
-
-  //   setProductQuantities((prev) => ({
-  //     ...prev,
-  //     [item_code]: Math.max(1, quantity),
-  //   }));
-  // };
 
   const updateProductQuantity = async (item_code: string, quantity: number) => {
     // Check if item is already in cart
@@ -474,13 +418,20 @@ export default function POSApp() {
           item_code: item.item_code,
           quantity: item.quantity.toString(),
           customer_code: item.customer_code,
-          currency: "EUR",
+          currency: selectedCurrencyCode,
           unit_of_measure: item.product.unit_sales,
         })
       );
 
+      const mappedTaxRequests = updatedCart.map((item: CartItem) => ({
+        item_code: item.item_code,
+        regime_taxe_tiers: selectTaxeCode,
+      }));
+
       try {
         console.log("Fetching pricing for:", mappedRequests);
+        const taxResponse = await fetchAppliedTaxes(mappedTaxRequests);
+        console.log("Applied taxes response: ====>", taxResponse.data);
         const pricingResponse = await fetchPricing(mappedRequests);
         console.log("Pricing response: ====>", pricingResponse.data);
 
@@ -489,6 +440,10 @@ export default function POSApp() {
           prevCart.map((cartItem) => {
             const pricingData = pricingResponse.data?.find(
               (priceItem: any) => priceItem.item_code === cartItem.item_code
+            );
+
+            const taxData = taxResponse.data?.find(
+              (taxItem: Tax) => taxItem.item_code === cartItem.item_code
             );
 
             if (pricingData) {
@@ -517,8 +472,10 @@ export default function POSApp() {
 
               return {
                 ...cartItem,
-                unitPrice: finalUnitPrice,
-                totalPrice: finalTotalPrice,
+                unitPrice:
+                  finalUnitPrice * (taxData ? 1 + taxData.taux / 100 : 1),
+                totalPrice:
+                  finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
               };
             }
 
@@ -529,6 +486,10 @@ export default function POSApp() {
         console.error("Error fetching pricing:", error);
       }
     }
+  };
+
+  const clearCart = () => {
+    setCart([]);
   };
 
   const processTransaction = async (
@@ -588,15 +549,21 @@ export default function POSApp() {
   const total = subtotal + tax;
 
   useEffect(() => {
-    setIsAnimating(true);
+    const loadingTaxe = async () => {
+      try {
+        const response = await fetchTaxRegimes(selectedClientCode);
+        console.log("Fetched tax regimes:", response);
+        setTaxeCode(response?.data?.code || "");
+        if (response && response.success) {
+          console.log("Tax regimes loaded:", response.data);
+        }
+      } catch (error) {
+        console.error("Error loading clients:", error);
+      }
+    };
 
-    // Start the animation
-    setTimeout(() => {
-      setTimeout(() => {
-        setIsAnimating(false);
-      }, 5); // Half of transition duration
-    }, 5); // Half of transition duration
-  }, [productQuantities]);
+    loadingTaxe();
+  }, [selectedClientCode]);
 
   const renderCurrentView = () => {
     switch (currentView) {

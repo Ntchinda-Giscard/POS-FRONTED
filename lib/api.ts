@@ -1,3 +1,4 @@
+import { Tabs } from "@/components/ui/tabs";
 import {
   mockProducts,
   mockCustomers,
@@ -661,6 +662,46 @@ export async function fetchPricing(
     return {
       success: false,
       error: "API not available - pricing could not be fetched",
+      data: [],
+      isFromMock: true,
+    };
+  }
+}
+
+export interface Tax {
+  code: string;
+  item_code: string;
+  taux: number;
+  exonerer?: string;
+  compte_comptable?: string;
+}
+
+type TaxRequest = {
+  item_code: string;
+  regime_taxe_tiers: string;
+  groupe_societe?: string;
+  type_taxe?: string;
+};
+
+export async function fetchAppliedTaxes(
+  requests: TaxRequest[]
+): Promise<ApiResponse<Tax[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/taxe/applied/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requests),
+    });
+    if (!response.ok) throw new Error("Failed to fetch applied taxes");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.warn("[v0] API not available, fetching applied taxes locally");
+    return {
+      success: false,
+      error: "API not available - applied taxes could not be fetched",
       data: [],
       isFromMock: true,
     };

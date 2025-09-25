@@ -2,36 +2,38 @@ import { create } from "zustand";
 
 type ElementFact = {
   code: string;
-  name: string;
-  mode_fac: string;
+  amount: number;
+  type: number;
+  majmin: number;
+  description: string;
 };
 
 interface ElementFactState {
   selectedElementFact: ElementFact | null;
-  selectedElementFactCode: string;
+  selectedElementFactCode: number;
   elementFacts: ElementFact[];
   setSelectedElementFact: (ElementFact: ElementFact) => void;
-  setSelectedElementFactCode: (code: string) => void;
+  setSelectedElementFactCode: (amount: number, code: string) => void;
   setElementFacts: (ElementFacts: ElementFact[]) => void;
   clearSelection: () => void;
 }
 
 const useElementFactStore = create<ElementFactState>()((set, get) => ({
   selectedElementFact: null,
-  selectedElementFactCode: "",
+  selectedElementFactCode: 0,
   elementFacts: [],
 
   setSelectedElementFact: (elementFacts: ElementFact) =>
     set({
       selectedElementFact: elementFacts,
-      selectedElementFactCode: elementFacts.code,
+      selectedElementFactCode: elementFacts.amount,
     }),
 
-  setSelectedElementFactCode: (code: string) => {
+  setSelectedElementFactCode: (amount: number, code: string) => {
     const elementFacts = get().elementFacts;
     const elementFact = elementFacts.find((c) => c.code === code);
     set({
-      selectedElementFactCode: code,
+      selectedElementFactCode: amount,
       selectedElementFact: elementFact || null,
     });
   },
@@ -41,7 +43,7 @@ const useElementFactStore = create<ElementFactState>()((set, get) => ({
   clearSelection: () =>
     set({
       selectedElementFact: null,
-      selectedElementFactCode: "",
+      selectedElementFactCode: 0,
     }),
 }));
 

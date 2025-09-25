@@ -4,10 +4,16 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import useClientStore from "@/stores/client-store";
-import { fetchCondFact, fetchEscomtpe, fetchPaymentCondition } from "@/lib/api";
+import {
+  fetchCondFact,
+  fetchElementFacturation,
+  fetchEscomtpe,
+  fetchPaymentCondition,
+} from "@/lib/api";
 import usePayCondStore from "@/stores/payment-condition-store";
 import useEscompte from "@/stores/escompte-store";
 import useCondFact from "@/stores/cond-fact";
+import useElementFactStore from "@/stores/element-fact";
 
 export default function Facturation() {
   const selectedClientCode = useClientStore(
@@ -17,6 +23,15 @@ export default function Facturation() {
   const { selectPayCondCode, setPayCondCode } = usePayCondStore();
   const { selectEscompteCode, setEscompteCode } = useEscompte();
   const { selectedCondFact, setCondFact } = useCondFact();
+  const {
+    selectedElementFact,
+    selectedElementFactCode,
+    elementFacts,
+    setSelectedElementFact,
+    setSelectedElementFactCode,
+    setElementFacts,
+  } = useElementFactStore();
+
   useEffect(() => {
     const loadConditioPay = async () => {
       const response = await fetchPaymentCondition(selectedClientCode);
@@ -31,10 +46,16 @@ export default function Facturation() {
       const response = await fetchCondFact(selectedClientCode);
       setCondFact(response.data?.code || "");
     };
+    const loadElementFacturation = async () => {
+      const response = await fetchElementFacturation(selectedClientCode);
+      setElementFacts(response.data || []);
+      console.log("Element facturation", response);
+    };
     loadConditioPay();
     loadEscompte();
     loadCondFact();
-  }, [selectPayCondCode]);
+    loadElementFacturation();
+  }, [selectPayCondCode, elementFacts]);
   return (
     <div className="flex flex-col w-full gap-4">
       <h1> Mode facturation</h1>
@@ -108,6 +129,33 @@ export default function Facturation() {
               value={selectEscompteCode}
             />
           </div>
+        </div>
+      </div>
+      <Separator />
+      <div>
+        <h1> Element de facturation</h1>
+        <div className="flex flex-col gap-4">
+          {elementFacts.map((elementFact) => (
+            <div
+              key={elementFact.code}
+              className="flex flex-row gap-4 justify-between"
+            >
+              <Label>{elementFact.description}</Label>
+              <Input
+                disabled
+                onChange={(e) =>
+                  setSelectedElementFactCode(
+                    Number(e.target.value),
+                    elementFact.code
+                  )
+                }
+                className="w-[280px]"
+                type="number"
+                placeholder="xxx"
+                value={elementFact.amount}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -718,6 +718,7 @@ interface ElementFacturationResponse {
   amount: number;
   type: number;
   majmin: number;
+  description: string;
 }
 
 export async function fetchElementFacturation(

@@ -31,10 +31,15 @@ const useElementFactStore = create<ElementFactState>()((set, get) => ({
 
   setSelectedElementFactCode: (amount: number, code: string) => {
     const elementFacts = get().elementFacts;
-    const elementFact = elementFacts.find((c) => c.code === code);
+    const updatedElementFacts = elementFacts.map((elementFact) =>
+      elementFact.code === code ? { ...elementFact, amount } : elementFact
+    );
+    const elementFact = updatedElementFacts.find((c) => c.code === code);
+
     set({
       selectedElementFactCode: amount,
       selectedElementFact: elementFact || null,
+      elementFacts: updatedElementFacts, // ✅ Update the array
     });
   },
 

@@ -55,7 +55,7 @@ export default function Facturation() {
     loadEscompte();
     loadCondFact();
     loadElementFacturation();
-  }, [selectPayCondCode, elementFacts]);
+  }, []);
   return (
     <div className="flex flex-col w-full gap-4">
       <h1> Mode facturation</h1>
@@ -142,7 +142,7 @@ export default function Facturation() {
             >
               <Label>{elementFact.description}</Label>
               <Input
-                disabled
+                // disabled
                 onChange={(e) =>
                   setSelectedElementFactCode(
                     Number(e.target.value),

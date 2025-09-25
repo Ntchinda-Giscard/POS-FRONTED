@@ -40,6 +40,7 @@ import SiteExpedition from "@/components/select-site-epedition";
 import useSiteExpeditionStore from "@/stores/expedition-store";
 import {
   fetchAppliedTaxes,
+  fetchCommandCurrency,
   fetchCustomers,
   fetchPricing,
   fetchProducts,
@@ -51,63 +52,7 @@ import { Customer, Product } from "@/types/pos";
 import useClientStore from "@/stores/client-store";
 import useTaxeStore from "@/stores/taxe-store";
 import useCurrencyStore from "@/stores/currency-store";
-// Mock data to replace API calls
-const mockProducts = [
-  {
-    item_code: "WH001",
-    describtion: "Wireless Headphones",
-    base_price: 99.99,
-    categorie: "Electronics",
-    stock: 15,
-    image: "/wireless-headphones.jpg", // Updated to use jpg extension
-    barcode: "123456789012",
-  },
-  {
-    item_code: "CB001",
-    describtion: "Premium Coffee Beans",
-    base_price: 24.99,
-    categorie: "Food",
-    stock: 8,
-    image: "/pile-of-coffee-beans.jpg",
-    barcode: "123456789013",
-  },
-  {
-    item_code: "FW001",
-    describtion: "Fitness Watch",
-    base_price: 199.99,
-    categorie: "Electronics",
-    stock: 3,
-    image: "/fitness-watch.jpg",
-    barcode: "123456789014",
-  },
-  {
-    item_code: "LW001",
-    describtion: "Leather Wallet",
-    base_price: 49.99,
-    categorie: "Accessories",
-    stock: 12,
-    image: "/leather-wallet.jpg",
-    barcode: "123456789015",
-  },
-  {
-    item_code: "BS001",
-    describtion: "Bluetooth Speaker",
-    base_price: 79.99,
-    categorie: "Electronics",
-    stock: 0,
-    image: "/bluetooth-speaker.jpg",
-    barcode: "123456789016",
-  },
-  {
-    item_code: "OT001",
-    describtion: "Organic Tea",
-    base_price: 18.99,
-    categorie: "Food",
-    stock: 25,
-    image: "/organic-tea.jpg",
-    barcode: "123456789017",
-  },
-];
+import { getCurrencyByCode } from "@/lib/utils";
 
 const tabs = [
   {
@@ -544,8 +489,22 @@ export default function POSApp() {
       setIsLoadingCustomers(false);
     };
 
+    const loadingCurrency = async () => {
+      try {
+        const response = await fetchCommandCurrency(selectedClientCode);
+        console.log("Fetched command currency:", response);
+        setCurrency(response?.data?.code || "");
+        if (response && response.success) {
+          console.log("Tax regimes loaded:", response.data);
+        }
+      } catch (error) {
+        console.error("Error loading clients:", error);
+      }
+    };
+
     loadInitialData();
-  }, [siteExoeditionCode]);
+    loadingCurrency();
+  }, [siteExoeditionCode, selectedClientCode]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
   const tax = subtotal * 0.08;
@@ -627,7 +586,7 @@ export default function POSApp() {
                           </div>
                           <div className="text-right">
                             <div className="font-bold text-green-600">
-                              ${transaction.total.toFixed(2)}
+                              ${transaction.total?.toFixed(2)}
                             </div>
                             <Badge variant="outline">
                               {transaction.paymentMethod}
@@ -832,7 +791,6 @@ export default function POSApp() {
                                     }
                                     className="w-10 h-6 text-center border-0 bg-transparent text-xs font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none animate-in zoom-in-95 duration-300"
                                     min={0}
-                                    max={99}
                                     style={{ animationDelay: "200ms" }}
                                   />
                                   <Button
@@ -863,12 +821,15 @@ export default function POSApp() {
                                   <span
                                     className={`inline-block transition-all duration-300 ease-in-out font-bold text-lg`}
                                   >
-                                    $
+                                    {
+                                      getCurrencyByCode(selectedCurrencyCode)
+                                        ?.symbol
+                                    }
                                     {showControls
-                                      ? (product.base_price * quantity).toFixed(
-                                          2
-                                        )
-                                      : product.base_price.toFixed(2)}
+                                      ? (
+                                          product.base_price * quantity
+                                        )?.toFixed(2)
+                                      : product.base_price?.toFixed(2)}
                                   </span>
                                 </div>
                               </div>
@@ -1007,7 +968,7 @@ export default function POSApp() {
                   Today's transactions: {transactionHistory.length} | Total: $
                   {transactionHistory
                     .reduce((sum, t) => sum + t.total, 0)
-                    .toFixed(2)}
+                    ?.toFixed(2)}
                 </div>
               )}
             </div>
@@ -1074,7 +1035,7 @@ export default function POSApp() {
                               {item.product.describtion}
                             </h4>
                             <p className="text-xs text-muted-foreground">
-                              ${item.unitpriceHT} each
+                              ${item.unitpriceHT?.toFixed(2)} each
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
@@ -1109,7 +1070,7 @@ export default function POSApp() {
                             </Button>
                           </div>
                           <span className="font-medium text-sm min-w-[60px] text-right">
-                            ${item.totalPrice}
+                            ${item.totalPrice?.toFixed(2)}
                           </span>
                         </div>
                       ))}
@@ -1120,16 +1081,16 @@ export default function POSApp() {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span>Subtotal:</span>
-                        <span>${subtotal.toFixed(2)}</span>
+                        <span>${subtotal?.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Tax (8%):</span>
-                        <span>${tax.toFixed(2)}</span>
+                        <span>${tax?.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between font-bold text-lg">
                         <span>Total:</span>
                         <span className="text-green-600">
-                          ${total.toFixed(2)}
+                          ${total?.toFixed(2)}
                         </span>
                       </div>
                     </div>

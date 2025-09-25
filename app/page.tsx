@@ -137,7 +137,8 @@ interface CartItem {
   customer_code: string;
   product: Product;
   quantity: number;
-  unitPrice: number;
+  unitPriceTTC: number;
+  unitpriceHT: number;
   totalPrice: number;
 }
 
@@ -236,7 +237,7 @@ export default function POSApp() {
                 ...item,
                 customer_code: selectedClientCode,
                 quantity: item.quantity + quantity,
-                totalPrice: (item.quantity + quantity) * item.unitPrice,
+                totalPrice: (item.quantity + quantity) * item.unitpriceHT,
               }
             : item
         );
@@ -273,7 +274,7 @@ export default function POSApp() {
             customer_code: selectedClientCode,
             quantity,
             // Keep the existing unitPrice for now, will be updated with API response
-            totalPrice: quantity * item.unitPrice,
+            totalPrice: quantity * item.unitpriceHT,
           }
         : item
     );
@@ -346,7 +347,8 @@ export default function POSApp() {
 
             return {
               ...cartItem,
-              unitPrice:
+              unitpriceHT: finalUnitPrice,
+              unitPriceTTC:
                 finalUnitPrice * (taxData ? 1 + taxData.taux / 100 : 1),
               totalPrice:
                 finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
@@ -404,7 +406,7 @@ export default function POSApp() {
               ...item,
               customer_code: selectedClientCode,
               quantity,
-              totalPrice: quantity * item.unitPrice,
+              totalPrice: quantity * item.unitpriceHT,
             }
           : item
       );
@@ -472,7 +474,8 @@ export default function POSApp() {
 
               return {
                 ...cartItem,
-                unitPrice:
+                unitpriceHT: finalUnitPrice,
+                unitPriceTTC:
                   finalUnitPrice * (taxData ? 1 + taxData.taux / 100 : 1),
                 totalPrice:
                   finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
@@ -1071,7 +1074,7 @@ export default function POSApp() {
                               {item.product.describtion}
                             </h4>
                             <p className="text-xs text-muted-foreground">
-                              ${item.unitPrice} each
+                              ${item.unitpriceHT} each
                             </p>
                           </div>
                           <div className="flex items-center gap-1">

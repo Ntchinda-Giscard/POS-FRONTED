@@ -707,3 +707,40 @@ export async function fetchAppliedTaxes(
     };
   }
 }
+
+// API pour recuperer les element de facturation
+export type ElementFacturation = {
+  code_customer: string;
+};
+
+interface ElementFacturationResponse {
+  code: string;
+  amount: number;
+  type: number;
+  majmin: number;
+}
+
+export async function fetchElementFacturation(
+  client_code: string
+): Promise<ApiResponse<ElementFacturationResponse[]>> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/facture/element?customer_code=${client_code}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) throw new Error("Failed to fetch element facturation");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error fetching element facturation:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}

@@ -42,6 +42,7 @@ import {
   fetchAppliedTaxes,
   fetchCommandCurrency,
   fetchCustomers,
+  fetchElementFacturation,
   fetchPricing,
   fetchProducts,
   fetchTaxRegimes,
@@ -53,6 +54,7 @@ import useClientStore from "@/stores/client-store";
 import useTaxeStore from "@/stores/taxe-store";
 import useCurrencyStore from "@/stores/currency-store";
 import { getCurrencyByCode } from "@/lib/utils";
+import useElementFactStore from "@/stores/element-fact";
 
 const tabs = [
   {
@@ -85,12 +87,22 @@ interface CartItem {
   unitPriceTTC: number;
   unitpriceHT: number;
   totalPrice: number;
+  totalpriceHT: number;
 }
 
 export default function POSApp() {
   const selectedClientCode = useClientStore(
     (state) => state.selectedClientCode
   );
+  const {
+    selectedElementFact,
+    selectedElementFactCode,
+    elementFacts,
+    setSelectedElementFact,
+    setSelectedElementFactCode,
+    setElementFacts,
+  } = useElementFactStore();
+
   const [currentView, setCurrentView] = useState("pos");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -246,9 +258,10 @@ export default function POSApp() {
     try {
       console.log("Fetching taxes for:", mappedTaxRequests);
       console.log("Fetching pricing for:", mappedRequests);
+
+      const pricingResponse = await fetchPricing(mappedRequests);
       const taxResponse = await fetchAppliedTaxes(mappedTaxRequests);
       console.log("Applied taxes response: ====>", taxResponse.data);
-      const pricingResponse = await fetchPricing(mappedRequests);
       console.log("Pricing response: ====>", pricingResponse.data);
 
       // Update cart with the pricing response
@@ -297,6 +310,7 @@ export default function POSApp() {
                 finalUnitPrice * (taxData ? 1 + taxData.taux / 100 : 1),
               totalPrice:
                 finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
+              totalpriceHT: finalTotalPrice,
             };
           }
 
@@ -377,9 +391,9 @@ export default function POSApp() {
 
       try {
         console.log("Fetching pricing for:", mappedRequests);
+        const pricingResponse = await fetchPricing(mappedRequests);
         const taxResponse = await fetchAppliedTaxes(mappedTaxRequests);
         console.log("Applied taxes response: ====>", taxResponse.data);
-        const pricingResponse = await fetchPricing(mappedRequests);
         console.log("Pricing response: ====>", pricingResponse.data);
 
         // Update cart with the pricing response
@@ -424,6 +438,7 @@ export default function POSApp() {
                   finalUnitPrice * (taxData ? 1 + taxData.taux / 100 : 1),
                 totalPrice:
                   finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
+                totalpriceHT: finalTotalPrice,
               };
             }
 
@@ -502,13 +517,50 @@ export default function POSApp() {
       }
     };
 
+    const loadElementFacturation = async () => {
+      const response = await fetchElementFacturation(selectedClientCode);
+      setElementFacts(response.data || []);
+      console.log("Element facturation", response);
+    };
+    loadElementFacturation();
     loadInitialData();
     loadingCurrency();
   }, [siteExoeditionCode, selectedClientCode]);
 
-  const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+  const applyElementFact = (montant: number) => {
+    if (elementFacts.length > 0) {
+      elementFacts.forEach((element) => {
+        // Majoration
+        if (element.majmin == 1) {
+          // Application d'un taux
+          if (element.type == 3) {
+            montant = montant * (1 + element.amount / 100);
+          }
+          // Application d'un montant
+          else if (element.type == 1) {
+            montant += element.amount;
+          }
+        }
+
+        // Minoration
+        else if (element.majmin == 2) {
+          // Application d'un taux
+          if (element.type == 3) {
+            montant = montant * (1 - element.amount / 100);
+          }
+          // Application d'un montant
+          else if (element.type == 1) {
+            montant -= element.amount;
+          }
+        }
+      });
+    }
+  };
+
+  const subtotalTTC = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+  const subtotalHT = cart.reduce((sum, item) => sum + item.totalpriceHT, 0);
+  const tax = subtotalHT * 0.08;
+  const total = subtotalHT + tax;
 
   useEffect(() => {
     const loadingTaxe = async () => {
@@ -1035,7 +1087,7 @@ export default function POSApp() {
                               {item.product.describtion}
                             </h4>
                             <p className="text-xs text-muted-foreground">
-                              ${item.unitpriceHT?.toFixed(2)} each
+                              ${item.unitpriceHT?.toFixed(2)} chacun
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
@@ -1070,29 +1122,80 @@ export default function POSApp() {
                             </Button>
                           </div>
                           <span className="font-medium text-sm min-w-[60px] text-right">
-                            ${item.totalPrice?.toFixed(2)}
+                            HT:
+                            {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                            {item.totalpriceHT?.toFixed(2)}
+                          </span>
+
+                          <span className="font-medium text-sm min-w-[60px] text-right">
+                            TTC:
+                            {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                            {item.totalPrice?.toFixed(2)}
                           </span>
                         </div>
                       ))}
                     </div>
 
+                    <h2>Montant</h2>
                     <Separator />
-
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span>Subtotal:</span>
-                        <span>${subtotal?.toFixed(2)}</span>
+                        <span>Total HT:</span>
+                        <span>
+                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                          {subtotalHT?.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span>Total TTC:</span>
+                        <span>
+                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                          {subtotalTTC?.toFixed(2)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>Tax (8%):</span>
-                        <span>${tax?.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold text-lg">
-                        <span>Total:</span>
-                        <span className="text-green-600">
-                          ${total?.toFixed(2)}
+                        <span>
+                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                          {tax?.toFixed(2)}
                         </span>
                       </div>
+                    </div>
+
+                    <h2>Valorisation</h2>
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Total HT:</span>
+                        <span>
+                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                          {subtotalHT?.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span>Total TTC:</span>
+                        <span>
+                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                          {subtotalTTC?.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tax (8%):</span>
+                        <span>
+                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                          {tax?.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total:</span>
+                      <span className="text-green-600">
+                        {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                        {total?.toFixed(2)}
+                      </span>
                     </div>
 
                     <div className="space-y-2 pt-4">

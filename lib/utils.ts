@@ -268,9 +268,7 @@ export const currencies: Currency[] = [
 
 // Utility functions
 export const getCurrencyByCode = (code: string): Currency | undefined => {
-  console.log("code curency input", code);
   const currency = currencies.find((currency) => currency.code === code);
-  console.log("currency", currency);
   return currency;
 };
 

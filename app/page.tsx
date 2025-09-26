@@ -28,6 +28,9 @@ import {
   Minus,
   Plus,
   Menu,
+  Trash2,
+  TrendingUp,
+  Calculator,
 } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -555,12 +558,16 @@ export default function POSApp() {
         }
       });
     }
+
+    return montant;
   };
 
   const subtotalTTC = cart.reduce((sum, item) => sum + item.totalPrice, 0);
   const subtotalHT = cart.reduce((sum, item) => sum + item.totalpriceHT, 0);
   const tax = subtotalHT * 0.08;
-  const total = subtotalHT + tax;
+
+  const valoTotalHT = applyElementFact(subtotalHT);
+  const valoTotalTTc = applyElementFact(subtotalTTC);
 
   useEffect(() => {
     const loadingTaxe = async () => {
@@ -1031,7 +1038,7 @@ export default function POSApp() {
           {/* Cart Dialog */}
           <Dialog open={isCartOpen} onOpenChange={() => {}}>
             <DialogContent
-              className="max-w-md max-h-[90vh] overflow-hidden"
+              className="min-w-xl max-h-[90vh] overflow-scroll"
               onPointerDownOutside={(e) => e.preventDefault()}
             >
               <DialogHeader>
@@ -1066,138 +1073,209 @@ export default function POSApp() {
                 ) : (
                   <>
                     <div className="max-h-64 space-y-3 overflow-y-auto">
-                      {cart.map((item, index) => (
-                        <div
-                          key={item.item_code}
-                          className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 transition-all duration-200 hover:bg-muted animate-in slide-in-from-right-2"
-                          style={{ animationDelay: `${index * 100}ms` }}
-                        >
-                          <Image
-                            src={
-                              item.product.image ||
-                              "/placeholder.svg?height=40&width=40&query=product"
-                            }
-                            alt={item.product.describtion}
-                            width={40}
-                            height={40}
-                            className="w-10 h-10 object-cover rounded transition-transform duration-200 hover:scale-110"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm truncate">
-                              {item.product.describtion}
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              ${item.unitpriceHT?.toFixed(2)} chacun
-                            </p>
+                      {cart.map((item, index) => {
+                        const isFree =
+                          item.unitpriceHT === 0 || item.totalpriceHT === 0;
+                        const currencySymbol =
+                          getCurrencyByCode(selectedCurrencyCode)?.symbol;
+
+                        return (
+                          <div
+                            key={item.item_code}
+                            className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:bg-muted animate-in slide-in-from-right-2 ${
+                              isFree
+                                ? "bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800"
+                                : "bg-muted/50"
+                            }`}
+                            style={{ animationDelay: `${index * 100}ms` }}
+                          >
+                            <div className="relative">
+                              <Image
+                                src={
+                                  item.product.image ||
+                                  "/placeholder.svg?height=40&width=40&query=product"
+                                }
+                                alt={item.product.describtion}
+                                width={40}
+                                height={40}
+                                className="w-10 h-10 object-cover rounded transition-transform duration-200 hover:scale-110"
+                              />
+                              {isFree && (
+                                <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">
+                                  FREE
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium text-sm truncate">
+                                  {item.product.describtion}
+                                </h4>
+                                {isFree && (
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium dark:bg-green-900 dark:text-green-100">
+                                    Gratuit
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-xs text-muted-foreground">
+                                  {isFree ? (
+                                    <span className="text-green-600 font-medium">
+                                      Free item
+                                    </span>
+                                  ) : (
+                                    <>
+                                      {currencySymbol}
+                                      {item.unitpriceHT?.toFixed(2)} each
+                                    </>
+                                  )}
+                                </p>
+                                {item.item_code && (
+                                  <span className="text-xs text-muted-foreground bg-gray-100 px-1.5 py-0.5 rounded dark:bg-gray-800">
+                                    #{item.item_code}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0 bg-transparent transition-all duration-200 hover:scale-110"
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.item_code,
+                                    item.quantity - 1
+                                  )
+                                }
+                              >
+                                -
+                              </Button>
+                              <span className="w-8 text-center text-sm font-medium">
+                                {item.quantity}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 w-6 p-0 bg-transparent transition-all duration-200 hover:scale-110"
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.item_code,
+                                    item.quantity + 1
+                                  )
+                                }
+                              >
+                                +
+                              </Button>
+                            </div>
+
+                            {/* Improved price display */}
+                            <div className="text-right min-w-[80px]">
+                              <div className="text-xs text-muted-foreground">
+                                HT:{" "}
+                                {isFree ? (
+                                  <span className="text-green-600 font-medium">
+                                    Free
+                                  </span>
+                                ) : (
+                                  <span className="font-medium">
+                                    {currencySymbol}
+                                    {item.totalpriceHT?.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-sm font-semibold">
+                                TTC:{" "}
+                                {isFree ? (
+                                  <span className="text-green-600 font-bold">
+                                    Free
+                                  </span>
+                                ) : (
+                                  <span>
+                                    {currencySymbol}
+                                    {item.totalPrice?.toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 w-6 p-0 bg-transparent transition-all duration-200 hover:scale-110"
-                              onClick={() =>
-                                updateQuantity(
-                                  item.item_code,
-                                  item.quantity - 1
-                                )
-                              }
-                            >
-                              -
-                            </Button>
-                            <span className="w-8 text-center text-sm font-medium">
-                              {item.quantity}
+                        );
+                      })}
+                    </div>
+
+                    {/* Summary Section with improved layout */}
+                    <div className="space-y-4 border-t pt-4">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                          <Calculator className="h-4 w-4" />
+                          Récapitulatif de la commande
+                        </h3>
+                        <div className="bg-gray-50 rounded-lg p-3 space-y-2 dark:bg-gray-900">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                              Sous-total (HT):
                             </span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-6 w-6 p-0 bg-transparent transition-all duration-200 hover:scale-110"
-                              onClick={() =>
-                                updateQuantity(
-                                  item.item_code,
-                                  item.quantity + 1
-                                )
-                              }
-                            >
-                              +
-                            </Button>
+                            <span className="font-medium">
+                              {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                              {subtotalHT?.toFixed(2)}
+                            </span>
                           </div>
-                          <span className="font-medium text-sm min-w-[60px] text-right">
-                            HT:
-                            {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                            {item.totalpriceHT?.toFixed(2)}
-                          </span>
-
-                          <span className="font-medium text-sm min-w-[60px] text-right">
-                            TTC:
-                            {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                            {item.totalPrice?.toFixed(2)}
-                          </span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                              Tax included:
+                            </span>
+                            <span className="font-medium">
+                              {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                              {(subtotalTTC - subtotalHT)?.toFixed(2)}
+                            </span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between items-center text-lg font-bold">
+                            <span>Total (TTC):</span>
+                            <span className="text-primary">
+                              {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                              {subtotalTTC?.toFixed(2)}
+                            </span>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-
-                    <h2>Montant</h2>
-                    <Separator />
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Total HT:</span>
-                        <span>
-                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                          {subtotalHT?.toFixed(2)}
-                        </span>
                       </div>
 
-                      <div className="flex justify-between">
-                        <span>Total TTC:</span>
-                        <span>
-                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                          {subtotalTTC?.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Tax (8%):</span>
-                        <span>
-                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                          {tax?.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <h2>Valorisation</h2>
-                    <Separator />
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Total HT:</span>
-                        <span>
-                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                          {subtotalHT?.toFixed(2)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span>Total TTC:</span>
-                        <span>
-                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                          {subtotalTTC?.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Tax (8%):</span>
-                        <span>
-                          {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                          {tax?.toFixed(2)}
-                        </span>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" />
+                          Validation
+                        </h3>
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 space-y-2 dark:from-green-950 dark:to-emerald-950">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                              Value (HT):
+                            </span>
+                            <span className="font-medium text-gray-600">
+                              {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                              {valoTotalHT?.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-xl font-bold">
+                            <span>Value (TTC):</span>
+                            <span className="text-green-600">
+                              {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                              {valoTotalTTc?.toFixed(2)}
+                            </span>
+                          </div>
+                          {valoTotalTTc > subtotalTTC && (
+                            <div className="text-xs text-green-600 font-medium">
+                              You save:{" "}
+                              {getCurrencyByCode(selectedCurrencyCode)?.symbol}
+                              {(valoTotalTTc - subtotalTTC)?.toFixed(2)}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-between font-bold text-lg">
-                      <span>Total:</span>
-                      <span className="text-green-600">
-                        {getCurrencyByCode(selectedCurrencyCode)?.symbol}
-                        {total?.toFixed(2)}
-                      </span>
-                    </div>
-
+                    {/* Payment buttons */}
                     <div className="space-y-2 pt-4">
                       <Button
                         className="w-full transition-all duration-200 hover:scale-105"
@@ -1212,7 +1290,9 @@ export default function POSApp() {
                             Processing...
                           </>
                         ) : (
-                          "Pay with Card"
+                          `Pay ${
+                            getCurrencyByCode(selectedCurrencyCode)?.symbol
+                          }${subtotalTTC?.toFixed(2)} with Card`
                         )}
                       </Button>
                       <Button
@@ -1239,11 +1319,12 @@ export default function POSApp() {
                       {cart.length > 0 && (
                         <Button
                           variant="ghost"
-                          className="w-full transition-all duration-200 hover:scale-105"
+                          className="w-full transition-all duration-200 hover:scale-105 text-destructive hover:text-destructive"
                           size="sm"
                           onClick={clearCart}
                           disabled={isProcessing}
                         >
+                          <Trash2 className="h-4 w-4 mr-2" />
                           Clear Cart
                         </Button>
                       )}

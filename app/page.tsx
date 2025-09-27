@@ -458,6 +458,11 @@ export default function POSApp() {
 
   const clearCart = () => {
     setCart([]);
+    // Reset all product quantities to 0
+    setProductQuantities({});
+
+    // Hide all quantity controls
+    setShowQuantityControls({});
   };
 
   const processTransaction = async (
@@ -475,11 +480,10 @@ export default function POSApp() {
         id: `TXN-${Date.now()}`,
         items: cart.map((item) => ({
           ...item,
-          // Ensure all pricing data is properly included
           unitpriceHT: item.unitpriceHT || item.product.base_price,
           totalpriceHT: item.totalpriceHT || item.unitpriceHT * item.quantity,
           totalPrice:
-            item.totalPrice || item.unitpriceHT * item.quantity * 1.08, // Assuming 8% tax
+            item.totalPrice || item.unitpriceHT * item.quantity * 1.08,
         })),
         subtotal: subtotalTTC,
         subtotalHT: subtotalHT,
@@ -489,7 +493,6 @@ export default function POSApp() {
         timestamp: new Date(),
         status: "completed" as const,
         customerCode: selectedClientCode,
-        // Add receipt-specific data
         receiptData: {
           storeName: "Your Store Name",
           storeAddress: "Store Address Line 1\nStore Address Line 2",
@@ -506,8 +509,8 @@ export default function POSApp() {
       // Add to transaction history
       setTransactionHistory((prev) => [transaction, ...prev]);
 
-      // Clear cart and close cart dialog
-      clearCart();
+      // Clear cart and reset product quantities/controls
+      clearCart(); // This now handles both cart and product quantity reset
       setIsCartOpen(false);
 
       // Show transaction confirmation with receipt options
@@ -517,7 +520,6 @@ export default function POSApp() {
     } catch (error) {
       console.error("Transaction failed:", error);
       setIsProcessing(false);
-      // You might want to show an error toast here
     }
   };
 

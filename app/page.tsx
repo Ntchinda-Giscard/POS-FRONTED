@@ -52,12 +52,14 @@ import {
   PricingRequest,
   Tax,
 } from "@/lib/api";
-import { Customer, Product } from "@/types/pos";
+import { Customer, Product, Transaction } from "@/types/pos";
 import useClientStore from "@/stores/client-store";
 import useTaxeStore from "@/stores/taxe-store";
 import useCurrencyStore from "@/stores/currency-store";
 import { getCurrencyByCode } from "@/lib/utils";
 import useElementFactStore from "@/stores/element-fact";
+import { TransactionConfirmation } from "@/components/transaction-confirmation";
+import { ReceiptGenerator } from "@/components/receipt-generator";
 
 const tabs = [
   {
@@ -107,6 +109,8 @@ export default function POSApp() {
   } = useElementFactStore();
 
   const [currentView, setCurrentView] = useState("pos");
+  const [completedTransaction, setCompletedTransaction] =
+    useState<Transaction | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -120,7 +124,7 @@ export default function POSApp() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-
+  const [showReceiptGenerator, setShowReceiptGenerator] = useState(false);
   const [productQuantities, setProductQuantities] = useState<
     Record<string, number>
   >({});
@@ -198,6 +202,8 @@ export default function POSApp() {
                 customer_code: selectedClientCode,
                 quantity: item.quantity + quantity,
                 totalPrice: (item.quantity + quantity) * item.unitpriceHT,
+                totalpriceHT: (item.quantity + quantity) * item.unitpriceHT,
+                unitPriceTTC: item.unitpriceHT * 1, // Default, will be updated later
               }
             : item
         );
@@ -209,8 +215,10 @@ export default function POSApp() {
           item_code: product.item_code,
           product,
           quantity,
-          unitPrice: product.base_price,
+          unitPriceTTC: product.base_price * 1, // Default, will be updated later
+          unitpriceHT: product.base_price,
           totalPrice: product.base_price * quantity,
+          totalpriceHT: product.base_price * quantity,
         },
       ];
     });
@@ -248,8 +256,8 @@ export default function POSApp() {
         item_code: item.item_code,
         quantity: item.quantity.toString(),
         customer_code: item.customer_code,
-        currency: "EUR",
-        unit_of_measure: item.product.unit_sales,
+        currency: selectedCurrencyCode,
+        unit_of_measure: item.product.unit_sales ?? "",
       })
     );
 
@@ -373,19 +381,17 @@ export default function POSApp() {
           : item
       );
 
-      // Update the cart state with new quantity
+      // Update the cart state withn new quantity
       setCart(updatedCart);
 
       // Create pricing requests using the updated cart
-      const mappedRequests: PricingRequest[] = updatedCart.map(
-        (item: CartItem) => ({
-          item_code: item.item_code,
-          quantity: item.quantity.toString(),
-          customer_code: item.customer_code,
-          currency: selectedCurrencyCode,
-          unit_of_measure: item.product.unit_sales,
-        })
-      );
+      const mappedRequests = updatedCart.map((item: CartItem) => ({
+        item_code: item.item_code,
+        quantity: item.quantity.toString(),
+        customer_code: item.customer_code,
+        currency: selectedCurrencyCode,
+        unit_of_measure: item.product.unit_sales ?? "",
+      }));
 
       const mappedTaxRequests = updatedCart.map((item: CartItem) => ({
         item_code: item.item_code,
@@ -560,6 +566,19 @@ export default function POSApp() {
     }
 
     return montant;
+  };
+
+  const handlePrintReceipt = () => {
+    console.log(
+      "[v0] Print receipt clicked, completedTransaction:",
+      completedTransaction
+    );
+    if (!completedTransaction) {
+      console.log("[v0] No completed transaction available for receipt");
+      return;
+    }
+    console.log("[v0] Opening receipt generator");
+    setShowReceiptGenerator(true);
   };
 
   const subtotalTTC = cart.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -1074,19 +1093,15 @@ export default function POSApp() {
                   <>
                     <div className="max-h-64 space-y-3 overflow-y-auto">
                       {cart.map((item, index) => {
-                        const isFree =
-                          item.unitpriceHT === 0 || item.totalpriceHT === 0;
+                        // const isFree =
+                        //   item.unitpriceHT === 0 || item.totalpriceHT === 0;
                         const currencySymbol =
                           getCurrencyByCode(selectedCurrencyCode)?.symbol;
 
                         return (
                           <div
                             key={item.item_code}
-                            className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:bg-muted animate-in slide-in-from-right-2 ${
-                              isFree
-                                ? "bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800"
-                                : "bg-muted/50"
-                            }`}
+                            className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:bg-muted animate-in slide-in-from-right-200`}
                             style={{ animationDelay: `${index * 100}ms` }}
                           >
                             <div className="relative">
@@ -1100,11 +1115,6 @@ export default function POSApp() {
                                 height={40}
                                 className="w-10 h-10 object-cover rounded transition-transform duration-200 hover:scale-110"
                               />
-                              {isFree && (
-                                <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">
-                                  FREE
-                                </div>
-                              )}
                             </div>
 
                             <div className="flex-1 min-w-0">
@@ -1112,24 +1122,15 @@ export default function POSApp() {
                                 <h4 className="font-medium text-sm truncate">
                                   {item.product.describtion}
                                 </h4>
-                                {isFree && (
-                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium dark:bg-green-900 dark:text-green-100">
-                                    Gratuit
-                                  </span>
-                                )}
                               </div>
                               <div className="flex items-center gap-2 mt-1">
                                 <p className="text-xs text-muted-foreground">
-                                  {isFree ? (
-                                    <span className="text-green-600 font-medium">
-                                      Free item
-                                    </span>
-                                  ) : (
-                                    <>
-                                      {currencySymbol}
-                                      {item.unitpriceHT?.toFixed(2)} each
-                                    </>
-                                  )}
+                                  (
+                                  <>
+                                    {currencySymbol}
+                                    {item.unitpriceHT?.toFixed(2)} each
+                                  </>
+                                  )
                                 </p>
                                 {item.item_code && (
                                   <span className="text-xs text-muted-foreground bg-gray-100 px-1.5 py-0.5 rounded dark:bg-gray-800">
@@ -1174,30 +1175,20 @@ export default function POSApp() {
                             {/* Improved price display */}
                             <div className="text-right min-w-[80px]">
                               <div className="text-xs text-muted-foreground">
-                                HT:{" "}
-                                {isFree ? (
-                                  <span className="text-green-600 font-medium">
-                                    Free
-                                  </span>
-                                ) : (
-                                  <span className="font-medium">
-                                    {currencySymbol}
-                                    {item.totalpriceHT?.toFixed(2)}
-                                  </span>
-                                )}
+                                HT: (
+                                <span className="font-medium">
+                                  {currencySymbol}
+                                  {item.totalpriceHT?.toFixed(2)}
+                                </span>
+                                )
                               </div>
                               <div className="text-sm font-semibold">
-                                TTC:{" "}
-                                {isFree ? (
-                                  <span className="text-green-600 font-bold">
-                                    Free
-                                  </span>
-                                ) : (
-                                  <span>
-                                    {currencySymbol}
-                                    {item.totalPrice?.toFixed(2)}
-                                  </span>
-                                )}
+                                TTC: (
+                                <span>
+                                  {currencySymbol}
+                                  {item.totalPrice?.toFixed(2)}
+                                </span>
+                                )
                               </div>
                             </div>
                           </div>
@@ -1245,7 +1236,7 @@ export default function POSApp() {
                       <div>
                         <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                           <TrendingUp className="h-4 w-4" />
-                          Validation
+                          Valorisation
                         </h3>
                         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 space-y-2 dark:from-green-950 dark:to-emerald-950">
                           <div className="flex justify-between items-center">
@@ -1334,6 +1325,18 @@ export default function POSApp() {
               </div>
             </DialogContent>
           </Dialog>
+          <TransactionConfirmation
+            transaction={completedTransaction}
+            isOpen={!!completedTransaction}
+            onClose={() => setCompletedTransaction(null)}
+            onPrintReceipt={handlePrintReceipt}
+          />
+
+          <ReceiptGenerator
+            transaction={completedTransaction}
+            isOpen={showReceiptGenerator}
+            onClose={() => setShowReceiptGenerator(false)}
+          />
         </div>
       </div>
     </div>

@@ -31,17 +31,39 @@ export interface TransactionItem {
   totalPrice: number;
 }
 
+export interface CartItem {
+  item_code: string;
+  customer_code: string;
+  product: Product;
+  quantity: number;
+  unitPriceTTC: number;
+  unitpriceHT: number;
+  totalPrice: number;
+  totalpriceHT: number;
+}
+
 export interface Transaction {
   id: string;
-  items: TransactionItem[];
+  items: CartItem[];
   subtotal: number;
+  subtotalHT: number;
   tax: number;
   total: number;
   paymentMethod: "cash" | "card" | "digital";
-  customerId?: string;
-  customer?: Customer;
   timestamp: Date;
-  status: "pending" | "completed" | "refunded";
+  status: "completed" | "pending" | "failed";
+  customerCode?: string;
+  receiptData?: {
+    storeName: string;
+    storeAddress: string;
+    storePhone: string;
+    cashierName: string;
+    terminalId: string;
+    receiptNumber: string;
+    currency: string;
+    valoTotalHT?: number;
+    valoTotalTTC?: number;
+  };
 }
 
 export interface Receipt {

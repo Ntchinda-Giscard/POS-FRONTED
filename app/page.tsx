@@ -60,6 +60,7 @@ import { getCurrencyByCode } from "@/lib/utils";
 import useElementFactStore from "@/stores/element-fact";
 import { TransactionConfirmation } from "@/components/transaction-confirmation";
 import { ReceiptGenerator } from "@/components/receipt-generator";
+import { Sidebar } from "@/components/sidebar";
 
 const tabs = [
   {
@@ -131,6 +132,8 @@ export default function POSApp() {
   const [showQuantityControls, setShowQuantityControls] = useState<
     Record<string, boolean>
   >({});
+  const [cashDrawerOpen, setCashDrawerOpen] = useState(false);
+  const [cashDrawerAmount, setCashDrawerAmount] = useState(200.0);
 
   const { theme, setTheme } = useTheme();
   const siteExoeditionCode = useSiteExpeditionStore(
@@ -958,7 +961,7 @@ export default function POSApp() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Simplified Sidebar */}
-      <div
+      {/* <div
         className={`${
           sidebarOpen ? "w-64" : "w-16"
         } transition-all duration-300 bg-muted/50 border-r flex flex-col`}
@@ -1003,7 +1006,15 @@ export default function POSApp() {
             {sidebarOpen && <span className="ml-2">History</span>}
           </Button>
         </div>
-      </div>
+      </div> */}
+      <Sidebar
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        transactionHistory={transactionHistory}
+        cashDrawerOpen={cashDrawerOpen}
+        onToggleCashDrawer={() => setCashDrawerOpen(!cashDrawerOpen)}
+        cashDrawerAmount={cashDrawerAmount}
+      />
 
       <div className="flex-1 p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">

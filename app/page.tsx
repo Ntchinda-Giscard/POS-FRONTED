@@ -1277,13 +1277,11 @@ export default function POSApp() {
                         <CreditCard className="h-4 w-4 mr-2" />
                         {isProcessing ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                             Processing...
                           </>
                         ) : (
-                          `Pay ${
-                            getCurrencyByCode(selectedCurrencyCode)?.symbol
-                          }${subtotalTTC?.toFixed(2)} with Card`
+                          "Pay with Card"
                         )}
                       </Button>
                       <Button
@@ -1310,12 +1308,11 @@ export default function POSApp() {
                       {cart.length > 0 && (
                         <Button
                           variant="ghost"
-                          className="w-full transition-all duration-200 hover:scale-105 text-destructive hover:text-destructive"
+                          className="w-full transition-all duration-200 hover:scale-105"
                           size="sm"
                           onClick={clearCart}
                           disabled={isProcessing}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
                           Clear Cart
                         </Button>
                       )}

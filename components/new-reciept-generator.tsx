@@ -1,66 +1,10 @@
 // Add these imports at the top of your page.tsx
 import { PrinterIcon, Receipt } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Transaction } from "@/types/pos";
 
 // Enhanced processTransaction function - replace your existing one
-const processTransaction = async (
-  paymentMethod: "cash" | "card" | "digital"
-) => {
-  if (cart.length === 0) return;
-
-  setIsProcessing(true);
-
-  try {
-    // Simulate processing
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const transaction: Transaction = {
-      id: `TXN-${Date.now()}`,
-      items: cart.map((item) => ({
-        ...item,
-        // Ensure all pricing data is properly included
-        unitpriceHT: item.unitpriceHT || item.product.base_price,
-        totalpriceHT: item.totalpriceHT || item.unitpriceHT * item.quantity,
-        totalPrice: item.totalPrice || item.unitpriceHT * item.quantity * 1.08, // Assuming 8% tax
-      })),
-      subtotal: subtotalTTC,
-      subtotalHT: subtotalHT,
-      tax: subtotalTTC - subtotalHT,
-      total: subtotalTTC,
-      paymentMethod,
-      timestamp: new Date(),
-      status: "completed" as const,
-      customerCode: selectedClientCode,
-      // Add receipt-specific data
-      receiptData: {
-        storeName: "Your Store Name",
-        storeAddress: "Store Address Line 1\nStore Address Line 2",
-        storePhone: "Phone: +237 XXX XXX XXX",
-        cashierName: "Cashier Name",
-        terminalId: "TERM-001",
-        receiptNumber: `RCP-${Date.now()}`,
-        currency: getCurrencyByCode(selectedCurrencyCode)?.symbol || "$",
-        valoTotalHT,
-        valoTotalTTC: valoTotalTTc,
-      },
-    };
-
-    // Add to transaction history
-    setTransactionHistory((prev) => [transaction, ...prev]);
-
-    // Clear cart and close cart dialog
-    clearCart();
-    setIsCartOpen(false);
-
-    // Show transaction confirmation with receipt options
-    setCompletedTransaction(transaction);
-
-    setIsProcessing(false);
-  } catch (error) {
-    console.error("Transaction failed:", error);
-    setIsProcessing(false);
-    // You might want to show an error toast here
-  }
-};
 
 // Enhanced Receipt Generator Component
 export const EnhancedReceiptGenerator = ({
@@ -201,7 +145,13 @@ export const EnhancedReceiptGenerator = ({
           <div class="items">
             ${transaction.items
               .map(
-                (item) => `
+                (item: {
+                  product: { describtion: any };
+                  totalPrice: any;
+                  quantity: any;
+                  unitpriceHT: any;
+                  item_code: any;
+                }) => `
               <div class="item">
                 <div class="item-name">${item.product.describtion}</div>
                 <div>${transaction.receiptData?.currency}${(
@@ -419,26 +369,3 @@ export const EnhancedTransactionConfirmation = ({
 // Replace <ReceiptGenerator> with:
 
 // Update your Transaction interface to include receiptData:
-interface Transaction {
-  id: string;
-  items: CartItem[];
-  subtotal: number;
-  subtotalHT: number;
-  tax: number;
-  total: number;
-  paymentMethod: "cash" | "card" | "digital";
-  timestamp: Date;
-  status: "completed" | "pending" | "failed";
-  customerCode?: string;
-  receiptData?: {
-    storeName: string;
-    storeAddress: string;
-    storePhone: string;
-    cashierName: string;
-    terminalId: string;
-    receiptNumber: string;
-    currency: string;
-    valoTotalHT?: number;
-    valoTotalTTC?: number;
-  };
-}

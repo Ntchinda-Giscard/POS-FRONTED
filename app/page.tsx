@@ -52,7 +52,7 @@ import {
   PricingRequest,
   Tax,
 } from "@/lib/api";
-import { Customer, Product, Transaction } from "@/types/pos";
+import { CartItem, Customer, Product, Transaction } from "@/types/pos";
 import useClientStore from "@/stores/client-store";
 import useTaxeStore from "@/stores/taxe-store";
 import useCurrencyStore from "@/stores/currency-store";
@@ -61,6 +61,10 @@ import useElementFactStore from "@/stores/element-fact";
 import { TransactionConfirmation } from "@/components/transaction-confirmation";
 import { ReceiptGenerator } from "@/components/receipt-generator";
 import { Sidebar } from "@/components/sidebar";
+import {
+  EnhancedReceiptGenerator,
+  EnhancedTransactionConfirmation,
+} from "@/components/new-reciept-generator";
 
 const tabs = [
   {
@@ -84,17 +88,6 @@ const tabs = [
     content: <Facturation />,
   },
 ];
-
-interface CartItem {
-  item_code: string;
-  customer_code: string;
-  product: Product;
-  quantity: number;
-  unitPriceTTC: number;
-  unitpriceHT: number;
-  totalPrice: number;
-  totalpriceHT: number;
-}
 
 export default function POSApp() {
   const selectedClientCode = useClientStore(
@@ -474,22 +467,58 @@ export default function POSApp() {
 
     setIsProcessing(true);
 
-    // Simulate processing
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    try {
+      // Simulate processing
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const transaction = {
-      id: `txn-${Date.now()}`,
-      items: cart,
-      total: cart.reduce((sum, item) => sum + item.totalPrice, 0),
-      paymentMethod,
-      timestamp: new Date(),
-      status: "completed",
-    };
+      const transaction: Transaction = {
+        id: `TXN-${Date.now()}`,
+        items: cart.map((item) => ({
+          ...item,
+          // Ensure all pricing data is properly included
+          unitpriceHT: item.unitpriceHT || item.product.base_price,
+          totalpriceHT: item.totalpriceHT || item.unitpriceHT * item.quantity,
+          totalPrice:
+            item.totalPrice || item.unitpriceHT * item.quantity * 1.08, // Assuming 8% tax
+        })),
+        subtotal: subtotalTTC,
+        subtotalHT: subtotalHT,
+        tax: subtotalTTC - subtotalHT,
+        total: subtotalTTC,
+        paymentMethod,
+        timestamp: new Date(),
+        status: "completed" as const,
+        customerCode: selectedClientCode,
+        // Add receipt-specific data
+        receiptData: {
+          storeName: "Your Store Name",
+          storeAddress: "Store Address Line 1\nStore Address Line 2",
+          storePhone: "Phone: +237 XXX XXX XXX",
+          cashierName: "Cashier Name",
+          terminalId: "TERM-001",
+          receiptNumber: `RCP-${Date.now()}`,
+          currency: getCurrencyByCode(selectedCurrencyCode)?.symbol || "$",
+          valoTotalHT,
+          valoTotalTTC: valoTotalTTc,
+        },
+      };
 
-    setTransactionHistory((prev) => [transaction, ...prev]);
-    clearCart();
-    setIsCartOpen(false);
-    setIsProcessing(false);
+      // Add to transaction history
+      setTransactionHistory((prev) => [transaction, ...prev]);
+
+      // Clear cart and close cart dialog
+      clearCart();
+      setIsCartOpen(false);
+
+      // Show transaction confirmation with receipt options
+      setCompletedTransaction(transaction);
+
+      setIsProcessing(false);
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      setIsProcessing(false);
+      // You might want to show an error toast here
+    }
   };
 
   useEffect(() => {
@@ -1333,14 +1362,14 @@ export default function POSApp() {
               </div>
             </DialogContent>
           </Dialog>
-          <TransactionConfirmation
+          <EnhancedTransactionConfirmation
             transaction={completedTransaction}
             isOpen={!!completedTransaction}
             onClose={() => setCompletedTransaction(null)}
             onPrintReceipt={handlePrintReceipt}
           />
 
-          <ReceiptGenerator
+          <EnhancedReceiptGenerator
             transaction={completedTransaction}
             isOpen={showReceiptGenerator}
             onClose={() => setShowReceiptGenerator(false)}

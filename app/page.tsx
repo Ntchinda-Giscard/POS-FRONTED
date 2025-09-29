@@ -42,6 +42,7 @@ import Facturation from "@/components/facturation";
 import SiteExpedition from "@/components/select-site-epedition";
 import useSiteExpeditionStore from "@/stores/expedition-store";
 import {
+  createSalseOrder,
   fetchAppliedTaxes,
   fetchCommandCurrency,
   fetchCustomers,
@@ -49,10 +50,17 @@ import {
   fetchPricing,
   fetchProducts,
   fetchTaxRegimes,
+  fetchTiers,
   PricingRequest,
   Tax,
 } from "@/lib/api";
-import { CartItem, Customer, Product, Transaction } from "@/types/pos";
+import {
+  CartItem,
+  Customer,
+  Product,
+  SalesOrder,
+  Transaction,
+} from "@/types/pos";
 import useClientStore from "@/stores/client-store";
 import useTaxeStore from "@/stores/taxe-store";
 import useCurrencyStore from "@/stores/currency-store";
@@ -65,6 +73,8 @@ import {
   EnhancedReceiptGenerator,
   EnhancedTransactionConfirmation,
 } from "@/components/new-reciept-generator";
+import useSiteVenteStore from "@/stores/site-store";
+import useTierStore from "@/stores/tier-store";
 
 const tabs = [
   {
@@ -102,6 +112,9 @@ export default function POSApp() {
     setElementFacts,
   } = useElementFactStore();
 
+  const { selectedSitetCode, sites, setSelectedSitetCode, setSiteVente } =
+    useSiteVenteStore();
+
   const [currentView, setCurrentView] = useState("pos");
   const [completedTransaction, setCompletedTransaction] =
     useState<Transaction | null>(null);
@@ -135,6 +148,24 @@ export default function POSApp() {
 
   const { selectTaxeCode, setTaxeCode } = useTaxeStore();
   const { selectedCurrencyCode, setCurrency } = useCurrencyStore();
+  const { selectTierCode, setTierCode } = useTierStore();
+
+  useEffect(() => {
+    console.log("Selected client code changed:", selectedClientCode);
+    const loadingClients = async () => {
+      try {
+        const response = await fetchTiers(selectedClientCode);
+        console.log("Fetched tiers:", response);
+        setTierCode(response?.data.code || "");
+        if (response && response.success) {
+          console.log("Clients loaded:", response.data);
+        }
+      } catch (error) {
+        console.error("Error loading clients:", error);
+      }
+    };
+    loadingClients();
+  }, [setTierCode]);
 
   const categories = [
     "all",
@@ -318,6 +349,7 @@ export default function POSApp() {
               totalPrice:
                 finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
               totalpriceHT: finalTotalPrice,
+              free_items: pricingData.gratuit,
             };
           }
 
@@ -474,7 +506,7 @@ export default function POSApp() {
 
     try {
       // Simulate processing
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // await new Promise((resolve) => setTimeout(resolve, 1500));
 
       const transaction: Transaction = {
         id: `TXN-${Date.now()}`,
@@ -488,7 +520,8 @@ export default function POSApp() {
         subtotal: subtotalTTC,
         subtotalHT: subtotalHT,
         tax: subtotalTTC - subtotalHT,
-        total: subtotalTTC,
+        total: valoTotalTTc,
+        totalHT: valoTotalHT,
         paymentMethod,
         timestamp: new Date(),
         status: "completed" as const,
@@ -507,6 +540,34 @@ export default function POSApp() {
       };
 
       console.log("Transaction processed:", transaction);
+
+      const request_data: SalesOrder = {
+        num_comd: transaction.id,
+        site_vente: selectedSitetCode,
+        currency: selectedCurrencyCode,
+        client_comd: selectedClientCode,
+        client_payeur: selectTierCode,
+        client_facture: selectTierCode,
+        total_ht: transaction.subtotalHT,
+        total_ttc: transaction.subtotal,
+        valo_ht: transaction.totalHT,
+        valo_ttc: transaction.totalHT,
+        price_type: 1,
+        comd_type: "SOH",
+        ligne: transaction.items?.map((item) => ({
+          num_comd: transaction.id,
+          item_code: item.item_code,
+          quantity: item.quantity,
+          prix_net_ht: item.unitpriceHT,
+          prix_net_ttc: item.unitPriceTTC,
+          free_items: item.free_items,
+        })),
+      };
+
+      // Simulate saving to the database
+      const response_order = await createSalseOrder(request_data);
+
+      console.log("Log[0] ====> ", response_order);
 
       // Add to transaction history
       setTransactionHistory((prev) => [transaction, ...prev]);

@@ -40,6 +40,7 @@ export interface CartItem {
   unitpriceHT: number;
   totalPrice: number;
   totalpriceHT: number;
+  free_items?: Record<string, any>[] | null;
 }
 
 export interface Transaction {
@@ -49,6 +50,7 @@ export interface Transaction {
   subtotalHT: number;
   tax: number;
   total: number;
+  totalHT: number;
   paymentMethod: "cash" | "card" | "digital";
   timestamp: Date;
   status: "completed" | "pending" | "failed";
@@ -178,7 +180,7 @@ export interface LigneCommande {
   prix_brut?: number;
   prix_net_ht: number;
   prix_net_ttc: number;
-  free_items: Record<string, any>[] | null;
+  free_items?: Record<string, any>[] | null;
 }
 
 export interface SalesOrder {

@@ -56,7 +56,7 @@ export default function SiteExpedition() {
         <SelectContent>
           <SelectGroup>
             <SelectLabel>site expédition</SelectLabel>
-            {addressExpedition.map((p) => (
+            {addressExpedition?.map((p) => (
               <SelectItem key={p.code} value={p.code}>
                 {p.code}-{p.description}
               </SelectItem>

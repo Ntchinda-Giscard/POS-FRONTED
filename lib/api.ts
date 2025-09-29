@@ -42,8 +42,8 @@ type CondFactType = {
   code: string;
 };
 
-type Pricing = {
-  gratuit: Array<unknown>;
+export type Pricing = {
+  gratuit: Record<string, any>[] | null;
   items_code: string;
   subtotal: number;
   prix_brut: number;

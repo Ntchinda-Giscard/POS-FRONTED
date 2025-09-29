@@ -112,6 +112,7 @@ export async function fetchAdresseVente() {
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
     );
+    return { success: false, data: [] };
   }
 }
 
@@ -282,6 +283,7 @@ export async function fetchTaxRegimes(
     return { success: true, data };
   } catch (error) {
     console.warn("[v0] API not available, using mock data for tax regimes");
+    return { success: false, data: { code: "" } };
     throw error;
   }
 }
@@ -348,7 +350,7 @@ export async function fetchCommandCurrency(
     return { success: true, data };
   } catch (error) {
     console.warn("[v0] API not available, using mock data for tax regimes");
-    throw error;
+    return { success: false, data: { code: "" } };
   }
 }
 
@@ -452,40 +454,6 @@ function generateMockOrderId(): string {
   return `SOH${Date.now().toString().slice(-6)}`;
 }
 
-// API pour les commandes
-export async function createSalesOrder(
-  orderData: Omit<SalesOrder, "id" | "orderNumber" | "createdAt" | "updatedAt">
-): Promise<ApiResponse<SalesOrder>> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/orders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(orderData),
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) throw new Error("Failed to create order");
-    const data = await response.json();
-    return { success: true, data };
-  } catch (error) {
-    console.warn("[v0] API not available, creating mock order");
-    const mockOrder: SalesOrder = {
-      ...orderData,
-      id: generateMockOrderId(),
-      orderNumber: generateMockOrderId(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    return {
-      success: true,
-      data: mockOrder,
-      isFromMock: true,
-      error: "API not available - order created locally",
-    };
-  }
-}
-
 export async function updateSalesOrder(
   orderId: string,
   updates: Partial<SalesOrder>
@@ -568,69 +536,6 @@ export async function processPayment(paymentData: {
       data: mockPayment,
       isFromMock: true,
       error: "API not available - payment simulated locally",
-    };
-  }
-}
-
-// API pour finaliser une commande
-export async function finalizeOrder(
-  orderId: string
-): Promise<ApiResponse<SalesOrder>> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/orders/${orderId}/finalize`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) throw new Error("Failed to finalize order");
-    const data = await response.json();
-    return { success: true, data };
-  } catch (error) {
-    console.warn("[v0] API not available, finalizing order locally");
-    const mockFinalizedOrder: SalesOrder = {
-      id: orderId,
-      orderNumber: orderId,
-      customerId: "mock-customer",
-      deliveryLocationId: "mock-location",
-      items: [],
-      subtotal: 0,
-      tax: 0,
-      total: 0,
-      status: "confirmed",
-      priority: "normal",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      customer: {
-        id: "mock-customer",
-        name: "Mock Customer",
-        email: "mock@customer.com",
-        phone: "0000000000",
-        address: "Mock Address",
-        customerCode: "",
-        creditLimit: 0,
-        paymentTerms: "",
-        isActive: false,
-        totalPurchases: 0,
-      },
-      deliveryLocation: {
-        id: "mock-location",
-        name: "Mock Location",
-        address: "Mock Address",
-        isActive: false,
-        code: "",
-        isDefault: false,
-      },
-      discount: 0,
-      createdBy: "",
-      modifications: [],
-    };
-    return {
-      success: true,
-      data: mockFinalizedOrder,
-      isFromMock: true,
-      error: "API not available - order finalized locally",
     };
   }
 }
@@ -742,6 +647,29 @@ export async function fetchElementFacturation(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function createSalseOrder(request: SalesOrder) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/orders/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Failed to create sales order");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.error("[v0] Error creating sales order:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+      data: null,
     };
   }
 }

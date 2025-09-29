@@ -506,6 +506,8 @@ export default function POSApp() {
         },
       };
 
+      console.log("Transaction processed:", transaction);
+
       // Add to transaction history
       setTransactionHistory((prev) => [transaction, ...prev]);
 
@@ -991,53 +993,6 @@ export default function POSApp() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Simplified Sidebar */}
-      {/* <div
-        className={`${
-          sidebarOpen ? "w-64" : "w-16"
-        } transition-all duration-300 bg-muted/50 border-r flex flex-col`}
-      >
-        <div className="p-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="w-full justify-start"
-          >
-            <Menu className="h-4 w-4" />
-            {sidebarOpen && <span className="ml-2">Menu</span>}
-          </Button>
-        </div>
-        <div className="flex-1 space-y-2 p-2">
-          <Button
-            variant={currentView === "pos" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setCurrentView("pos")}
-            className="w-full justify-start"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            {sidebarOpen && <span className="ml-2">POS</span>}
-          </Button>
-          <Button
-            variant={currentView === "dashboard" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setCurrentView("dashboard")}
-            className="w-full justify-start"
-          >
-            <Sparkles className="h-4 w-4" />
-            {sidebarOpen && <span className="ml-2">Dashboard</span>}
-          </Button>
-          <Button
-            variant={currentView === "history" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setCurrentView("history")}
-            className="w-full justify-start"
-          >
-            <Package className="h-4 w-4" />
-            {sidebarOpen && <span className="ml-2">History</span>}
-          </Button>
-        </div>
-      </div> */}
       <Sidebar
         currentView={currentView}
         onViewChange={setCurrentView}

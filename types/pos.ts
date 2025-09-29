@@ -99,36 +99,36 @@ export interface CashSession {
   transactions: Transaction[];
 }
 
-export interface SalesOrder {
-  id: string;
-  orderNumber: string; // Format: SOH-YYYYMMDD-XXXX
-  customerId: string;
-  customer: Customer;
-  deliveryLocationId: string;
-  deliveryLocation: DeliveryLocation;
-  items: OrderItem[];
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-  status:
-    | "draft"
-    | "pending_approval"
-    | "approved"
-    | "confirmed"
-    | "shipped"
-    | "invoiced"
-    | "cancelled";
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string;
-  approvedBy?: string;
-  approvedAt?: Date;
-  notes?: string;
-  priority: "low" | "normal" | "high" | "urgent";
-  expectedDeliveryDate?: Date;
-  modifications: OrderModification[];
-}
+// export interface SalesOrder {
+//   id: string;
+//   orderNumber: string; // Format: SOH-YYYYMMDD-XXXX
+//   customerId: string;
+//   customer: Customer;
+//   deliveryLocationId: string;
+//   deliveryLocation: DeliveryLocation;
+//   items: OrderItem[];
+//   subtotal: number;
+//   tax: number;
+//   discount: number;
+//   total: number;
+//   status:
+//     | "draft"
+//     | "pending_approval"
+//     | "approved"
+//     | "confirmed"
+//     | "shipped"
+//     | "invoiced"
+//     | "cancelled";
+//   createdAt: Date;
+//   updatedAt: Date;
+//   createdBy: string;
+//   approvedBy?: string;
+//   approvedAt?: Date;
+//   notes?: string;
+//   priority: "low" | "normal" | "high" | "urgent";
+//   expectedDeliveryDate?: Date;
+//   modifications: OrderModification[];
+// }
 
 export interface OrderItem {
   id: string;
@@ -169,4 +169,30 @@ export interface Approval {
   action: "approved" | "rejected";
   timestamp: Date;
   comments?: string;
+}
+
+export interface LigneCommande {
+  num_comd: string;
+  item_code: string;
+  quantity: number;
+  prix_brut?: number;
+  prix_net_ht: number;
+  prix_net_ttc: number;
+  free_items: Record<string, any>[] | null;
+}
+
+export interface SalesOrder {
+  num_comd: string;
+  site_vente: string;
+  currency: string;
+  client_comd: string;
+  client_payeur: string;
+  client_facture: string;
+  total_ht: number;
+  total_ttc: number;
+  valo_ht: number;
+  valo_ttc: number;
+  price_type: number;
+  comd_type: string;
+  ligne: LigneCommande[];
 }

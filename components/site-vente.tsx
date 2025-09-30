@@ -52,7 +52,7 @@ const SiteVenteSelect = () => {
         <SelectContent>
           <SelectGroup>
             <SelectLabel>adresse de vente</SelectLabel>
-            {sites.map((site) => (
+            {sites?.map((site) => (
               <SelectItem key={site.code} value={site.code}>
                 {site.description} ({site.code})
               </SelectItem>

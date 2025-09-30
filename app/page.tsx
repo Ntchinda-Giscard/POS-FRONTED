@@ -172,12 +172,12 @@ export default function POSApp() {
     ...Array.from(new Set(products.map((p) => p.categorie))),
   ];
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = products?.filter((product) => {
     const matchesCategory =
-      selectedCategory === "all" || product.categorie === selectedCategory;
+      selectedCategory === "all" || product?.categorie === selectedCategory;
     const matchesSearch =
-      product.describtion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.item_code.includes(searchTerm);
+      product?.describtion?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
+      product?.item_code?.includes(searchTerm);
     return matchesCategory && matchesSearch;
   });
 
@@ -844,7 +844,7 @@ export default function POSApp() {
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <SiteExpedition />
-                    {categories.map((category) => (
+                    {categories?.map((category) => (
                       <Button
                         key={category}
                         variant={

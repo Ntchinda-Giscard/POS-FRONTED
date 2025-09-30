@@ -165,7 +165,7 @@ export default function POSApp() {
       }
     };
     loadingClients();
-  }, [setTierCode]);
+  }, [setTierCode, selectedClientCode]);
 
   const categories = [
     "all",
@@ -553,6 +553,7 @@ export default function POSApp() {
         valo_ht: transaction.totalHT,
         valo_ttc: transaction.totalHT,
         price_type: 1,
+        regime_taxe: selectTaxeCode,
         comd_type: "SOH",
         ligne: transaction.items?.map((item) => ({
           num_comd: transaction.id,
@@ -563,6 +564,8 @@ export default function POSApp() {
           free_items: item.free_items,
         })),
       };
+
+      console.log("Request data for order creation:", request_data);
 
       // Simulate saving to the database
       const response_order = await createSalseOrder(request_data);

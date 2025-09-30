@@ -196,5 +196,6 @@ export interface SalesOrder {
   valo_ttc: number;
   price_type: number;
   comd_type: string;
+  regime_taxe: string;
   ligne: LigneCommande[];
 }

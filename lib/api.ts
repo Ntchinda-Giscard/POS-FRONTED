@@ -653,7 +653,7 @@ export async function fetchElementFacturation(
 
 export async function createSalseOrder(request: SalesOrder) {
   try {
-    const response = await fetch(`${API_BASE_URL}/orders/`, {
+    const response = await fetch(`${API_BASE_URL}/command/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

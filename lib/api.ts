@@ -244,26 +244,6 @@ export async function searchProducts(
   }
 }
 
-// API pour les clients
-export async function fetchCustomers(): Promise<ApiResponse<Customer[]>> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/customers`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!response.ok) throw new Error("Failed to fetch customers");
-    const data = await response.json();
-    return { success: true, data };
-  } catch (error) {
-    console.warn("[v0] API not available, using mock data for customers");
-    return {
-      success: true,
-      data: mockCustomers,
-      isFromMock: true,
-      error: "API not available - using local data",
-    };
-  }
-}
-
 // API pour les regime de taxe
 export async function fetchTaxRegimes(
   customer_code: string

@@ -6,7 +6,7 @@ export interface Product {
   unit_sales?: string;
   stock: number;
   barcode?: string;
-  image?: string;
+  image?: Base64URLString | null;
 }
 
 export interface Customer {

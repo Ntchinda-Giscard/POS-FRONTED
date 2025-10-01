@@ -45,7 +45,6 @@ import {
   createSalseOrder,
   fetchAppliedTaxes,
   fetchCommandCurrency,
-  fetchCustomers,
   fetchElementFacturation,
   fetchPricing,
   fetchProducts,
@@ -602,15 +601,6 @@ export default function POSApp() {
         console.error("[v0] Error loading products:", productsResponse.error);
       }
       setIsLoadingProducts(false);
-
-      const customersResponse = await fetchCustomers();
-      if (customersResponse.success && customersResponse.data) {
-        setCustomers(customersResponse.data);
-        console.log("[v0] Customers loaded:", customersResponse.data.length);
-      } else {
-        console.error("[v0] Error loading customers:", customersResponse.error);
-      }
-      setIsLoadingCustomers(false);
     };
 
     const loadingCurrency = async () => {
@@ -880,13 +870,15 @@ export default function POSApp() {
                     const quantity = productQuantities[product.item_code] || 1;
                     const showControls =
                       showQuantityControls[product.item_code];
+                    const productImage = product?.image?.toString();
+                    const src = `data:image/jpeg;base64,${productImage}`;
 
                     return (
                       <Card
                         key={product.item_code}
                         className={`cursor-pointer transition-all duration-500 hover:shadow-lg animate-in zoom-in-95 ${
                           product.stock === 0
-                            ? "opacity-60"
+                            ? "opacity-100"
                             : "hover:scale-[1.02] hover:-translate-y-1"
                         }`}
                         style={{
@@ -898,13 +890,13 @@ export default function POSApp() {
                           <div className="relative mb-3">
                             <Image
                               src={
-                                product.image ||
+                                src ||
                                 "/placeholder.svg?height=120&width=120&query=product"
                               }
                               alt={product.describtion}
                               width={120}
                               height={120}
-                              className="w-full h-24 object-cover rounded-md bg-muted transition-transform duration-200 hover:scale-105"
+                              className="w-full h-50 object-fill rounded-md bg-muted transition-transform duration-200 hover:scale-105"
                             />
                             {product.stock <= 10 && product.stock > 0 && (
                               <div className="absolute top-2 right-2 animate-pulse">
@@ -1158,6 +1150,8 @@ export default function POSApp() {
                         //   item.unitpriceHT === 0 || item.totalpriceHT === 0;
                         const currencySymbol =
                           getCurrencyByCode(selectedCurrencyCode)?.symbol;
+                        const productImage = item?.product.image?.toString();
+                        const src = `data:image/jpeg;base64,${productImage}`;
 
                         return (
                           <div
@@ -1168,7 +1162,7 @@ export default function POSApp() {
                             <div className="relative">
                               <Image
                                 src={
-                                  item.product.image ||
+                                  src ||
                                   "/placeholder.svg?height=40&width=40&query=product"
                                 }
                                 alt={item.product.describtion}

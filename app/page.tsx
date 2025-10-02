@@ -31,6 +31,7 @@ import {
   Trash2,
   TrendingUp,
   Calculator,
+  Repeat,
 } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -75,6 +76,12 @@ import {
 } from "@/components/new-reciept-generator";
 import useSiteVenteStore from "@/stores/site-store";
 import useTierStore from "@/stores/tier-store";
+import SwirlingEffectSpinner from "@/components/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const tabs = [
   {
@@ -697,6 +704,20 @@ export default function POSApp() {
 
     loadingTaxe();
   }, [selectedClientCode]);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSynchronization = async () => {
+    try {
+      setIsSyncing(true);
+      const response = await synchronizeData();
+      console.log("Data synchronized:", response);
+    } catch (error) {
+      console.error("Error synchronizing data:", error);
+      setIsSyncing(false);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -1074,18 +1095,50 @@ export default function POSApp() {
                   ? "Transaction History"
                   : "POS System"}
               </h1>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="transition-all duration-200 hover:scale-105"
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </Button>
+
+              <div className="flex items-center gap-4">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSynchronization}
+                      className="transition-all duration-200 hover:scale-105"
+                    >
+                      {isSyncing ? (
+                        <SwirlingEffectSpinner />
+                      ) : (
+                        <Repeat className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Synchronisé</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setTheme(theme === "dark" ? "light" : "dark")
+                      }
+                      className="transition-all duration-200 hover:scale-105"
+                    >
+                      {theme === "dark" ? (
+                        <Sun className="h-4 w-4" />
+                      ) : (
+                        <Moon className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p> Mode d'éclairage </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
             <div className="flex items-center justify-between flex-1">
               <p className="text-muted-foreground">
@@ -1335,7 +1388,7 @@ export default function POSApp() {
                         <CreditCard className="h-4 w-4 mr-2" />
                         {isProcessing ? (
                           <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            <SwirlingEffectSpinner />
                             Processing...
                           </>
                         ) : (

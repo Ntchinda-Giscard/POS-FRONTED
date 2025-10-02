@@ -35,7 +35,7 @@ const SwirlingEffectSpinner = () => {
 
       <svg
         viewBox="0 0 800 800"
-        className="h-14 w-14"
+        className="h-20 w-20"
         xmlns="http://www.w3.org/2000/svg"
       >
         <circle

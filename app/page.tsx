@@ -130,13 +130,9 @@ export default function POSApp() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionHistory, setTransactionHistory] = useState<any[]>([]);
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [showReceiptGenerator, setShowReceiptGenerator] = useState(false);
   const [productQuantities, setProductQuantities] = useState<
     Record<string, number>

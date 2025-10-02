@@ -51,6 +51,7 @@ import {
   fetchTaxRegimes,
   fetchTiers,
   PricingRequest,
+  synchronizeData,
   Tax,
 } from "@/lib/api";
 import {
@@ -99,6 +100,12 @@ const tabs = [
 ];
 
 export default function POSApp() {
+  useEffect(() => {
+    const handleSync = async () => {
+      await synchronizeData();
+    };
+    handleSync();
+  }, []);
   const selectedClientCode = useClientStore(
     (state) => state.selectedClientCode
   );

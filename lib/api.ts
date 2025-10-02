@@ -10,6 +10,7 @@ import type {
   DeliveryLocation,
   SalesOrder,
 } from "@/types/pos";
+import { toast } from "sonner";
 
 const API_BASE_URL = "http://127.0.0.1:7626";
 
@@ -83,8 +84,16 @@ export async function fetchProducts(
     if (!response.ok) throw new Error("Failed to fetch products");
     const data = await response.json();
     console.log("Fetch products data:", data);
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("New message received", {
+      description: "From John Doe - 2 minutes ago",
+      icon: "",
+      classNames: {
+        description: "text-foreground/80",
+      },
+    });
     console.error(error);
     console.warn("[v0] API not available, using mock data for products");
     return {
@@ -106,8 +115,12 @@ export async function fetchAdresseVente() {
     });
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error(error);
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
@@ -126,8 +139,12 @@ export async function fetchClients() {
     });
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error(error);
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
@@ -148,8 +165,12 @@ export async function fetchTiers(customer_code: string) {
     );
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error(error);
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
@@ -170,8 +191,12 @@ export async function fetchAdresseLivraison(customer_code: string) {
     );
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error(error);
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
@@ -193,8 +218,12 @@ export async function fetchAdresseExpedition(legacy_comp: string | undefined) {
     );
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error(error);
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
@@ -212,8 +241,12 @@ export async function fetchCommandType() {
     });
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error(error);
     throw error;
   }
@@ -280,8 +313,12 @@ export async function fetchModeLivraison() {
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     console.log("Fetch mode livraison response:", response);
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error(error);
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
@@ -301,8 +338,12 @@ export async function fetchTransporteur() {
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     console.log("Fetch mode livraison response:", response);
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error(error);
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
@@ -449,8 +490,12 @@ export async function updateSalesOrder(
     });
     if (!response.ok) throw new Error("Failed to update order");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error("[v0] Error updating order:", error);
     return {
       success: false,
@@ -466,8 +511,12 @@ export async function fetchSalesOrders(): Promise<ApiResponse<SalesOrder[]>> {
     });
     if (!response.ok) throw new Error("Failed to fetch orders");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error("[v0] Error fetching orders:", error);
     return {
       success: false,
@@ -621,8 +670,12 @@ export async function fetchElementFacturation(
     );
     if (!response.ok) throw new Error("Failed to fetch element facturation");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has not been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error("Error fetching element facturation:", error);
     return {
       success: false,
@@ -643,9 +696,42 @@ export async function createSalseOrder(request: SalesOrder) {
     });
     if (!response.ok) throw new Error("Failed to create sales order");
     const data = await response.json();
+    toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
+    toast.error("Event has not been created", {
+      description: "Monday, January 3rd at 6:00pm",
+    });
     console.error("[v0] Error creating sales order:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+      data: null,
+    };
+  }
+}
+
+export async function synchronizeData() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/synchronize`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw new Error("Failed to synchronize data");
+    const data = await response.json();
+    toast.loading("Synchronizing data...");
+    if (data.success) {
+      toast.success("Data synchronized successfully");
+    }
+    return { success: true, data };
+  } catch (error) {
+    toast.error("Data synchronization failed", {
+      description: "Please try again later.",
+    });
+    console.error("[v0] Error synchronizing data:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

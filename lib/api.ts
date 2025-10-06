@@ -87,8 +87,8 @@ export async function fetchProducts(
     toast.success("Event has been created");
     return { success: true, data };
   } catch (error) {
-    toast.error("New message received", {
-      description: "From John Doe - 2 minutes ago",
+    toast.error("Error fetching products", {
+      description: error instanceof Error ? error.message : "Unknown error",
       icon: "",
       classNames: {
         description: "text-foreground/80",
@@ -119,7 +119,7 @@ export async function fetchAdresseVente() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error(error);
     console.warn(
@@ -143,7 +143,7 @@ export async function fetchClients() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error(error);
     console.warn(
@@ -169,7 +169,7 @@ export async function fetchTiers(customer_code: string) {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error(error);
     console.warn(
@@ -195,7 +195,7 @@ export async function fetchAdresseLivraison(customer_code: string) {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error(error);
     console.warn(
@@ -222,7 +222,7 @@ export async function fetchAdresseExpedition(legacy_comp: string | undefined) {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error(error);
     console.warn(
@@ -245,7 +245,7 @@ export async function fetchCommandType() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error(error);
     throw error;
@@ -297,7 +297,6 @@ export async function fetchTaxRegimes(
   } catch (error) {
     console.warn("[v0] API not available, using mock data for tax regimes");
     return { success: false, data: { code: "" } };
-    throw error;
   }
 }
 
@@ -317,7 +316,7 @@ export async function fetchModeLivraison() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error(error);
     console.warn(
@@ -342,7 +341,7 @@ export async function fetchTransporteur() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error(error);
     console.warn(
@@ -494,7 +493,7 @@ export async function updateSalesOrder(
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error("[v0] Error updating order:", error);
     return {
@@ -515,7 +514,7 @@ export async function fetchSalesOrders(): Promise<ApiResponse<SalesOrder[]>> {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error("[v0] Error fetching orders:", error);
     return {
@@ -674,7 +673,7 @@ export async function fetchElementFacturation(
     return { success: true, data };
   } catch (error) {
     toast.error("Event has not been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error("Error fetching element facturation:", error);
     return {
@@ -700,7 +699,7 @@ export async function createSalseOrder(request: SalesOrder) {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has not been created", {
-      description: "Monday, January 3rd at 6:00pm",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error("[v0] Error creating sales order:", error);
     return {
@@ -729,7 +728,7 @@ export async function synchronizeData() {
     return { success: true, data };
   } catch (error) {
     toast.error("Data synchronization failed", {
-      description: "Please try again later.",
+      description: error instanceof Error ? error.message : "Unknown error",
     });
     console.error("[v0] Error synchronizing data:", error);
     return {

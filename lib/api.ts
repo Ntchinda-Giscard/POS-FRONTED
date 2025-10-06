@@ -717,7 +717,7 @@ export async function synchronizeData() {
       headers: {
         "Content-Type": "application/json",
       },
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(60000),
     });
     if (!response.ok) throw new Error("Failed to synchronize data");
     const data = await response.json();

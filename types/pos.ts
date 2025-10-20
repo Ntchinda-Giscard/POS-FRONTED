@@ -1,4 +1,7 @@
+import { ReactNode } from "react";
+
 export interface Product {
+  name: ReactNode;
   item_code: string;
   describtion: string;
   base_price: number;
@@ -44,6 +47,7 @@ export interface CartItem {
 }
 
 export interface Transaction {
+  customer: any;
   id: string;
   items: CartItem[];
   subtotal: number;

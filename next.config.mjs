@@ -1,14 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
-  eslint: {
-    ignoreDuringBuilds: true,
+  output: "export",
+  assetPrefix: "./",
+  images: {
+    unoptimized: true,
   },
+  trailingSlash: true,
+  // Skip TypeScript and ESLint checks during build
   typescript: {
     ignoreBuildErrors: true,
   },
-  images: {
-    unoptimized: true,
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 

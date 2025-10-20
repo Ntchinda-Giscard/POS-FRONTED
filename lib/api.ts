@@ -84,11 +84,14 @@ export async function fetchProducts(
     if (!response.ok) throw new Error("Failed to fetch products");
     const data = await response.json();
     console.log("Fetch products data:", data);
-    toast.success("Event has been created");
+    toast.success("Articles récupérés avec succès");
     return { success: true, data };
   } catch (error) {
-    toast.error("Error fetching products", {
-      description: error instanceof Error ? error.message : "Unknown error",
+    toast.error("Impossible de récupérer les articles", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
       icon: "",
       classNames: {
         description: "text-foreground/80",
@@ -115,11 +118,14 @@ export async function fetchAdresseVente() {
     });
     if (!response.ok) throw new Error("Failed to fetch delivery addresses");
     const data = await response.json();
-    toast.success("Event has been created");
+    toast.success("Addresse de vente récupérée avec succès");
     return { success: true, data };
   } catch (error) {
-    toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+    toast.error("Impossible de récupérer l'adresse de vente", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error(error);
     console.warn(
@@ -143,7 +149,10 @@ export async function fetchClients() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error(error);
     console.warn(
@@ -169,7 +178,10 @@ export async function fetchTiers(customer_code: string) {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error(error);
     console.warn(
@@ -195,7 +207,10 @@ export async function fetchAdresseLivraison(customer_code: string) {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error(error);
     console.warn(
@@ -222,7 +237,10 @@ export async function fetchAdresseExpedition(legacy_comp: string | undefined) {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error(error);
     console.warn(
@@ -245,7 +263,10 @@ export async function fetchCommandType() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error(error);
     throw error;
@@ -316,7 +337,10 @@ export async function fetchModeLivraison() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error(error);
     console.warn(
@@ -341,7 +365,10 @@ export async function fetchTransporteur() {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error(error);
     console.warn(
@@ -493,12 +520,18 @@ export async function updateSalesOrder(
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error("[v0] Error updating order:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     };
   }
 }
@@ -514,12 +547,18 @@ export async function fetchSalesOrders(): Promise<ApiResponse<SalesOrder[]>> {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error("[v0] Error fetching orders:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     };
   }
 }
@@ -669,16 +708,22 @@ export async function fetchElementFacturation(
     );
     if (!response.ok) throw new Error("Failed to fetch element facturation");
     const data = await response.json();
-    toast.success("Event has been created");
+    toast.success("Element de facturation trouver avec succès");
     return { success: true, data };
   } catch (error) {
-    toast.error("Event has not been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+    toast.error("Les éléments de facturation n’ont pas pu être trouvés.", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error("Error fetching element facturation:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     };
   }
 }
@@ -699,18 +744,27 @@ export async function createSalseOrder(request: SalesOrder) {
     return { success: true, data };
   } catch (error) {
     toast.error("Event has not been created", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
     console.error("[v0] Error creating sales order:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
       data: null,
     };
   }
 }
 
 export async function synchronizeData() {
+  // Show the loading toast and store its ID
+  const toastId = toast.loading("Synchronizing data...");
+
   try {
     const response = await fetch(`${API_BASE_URL}/synchronize`, {
       method: "POST",
@@ -719,21 +773,34 @@ export async function synchronizeData() {
       },
       signal: AbortSignal.timeout(60000),
     });
+
     if (!response.ok) throw new Error("Failed to synchronize data");
+
     const data = await response.json();
-    toast.loading("Synchronizing data...");
-    if (data.success) {
-      toast.success("Data synchronized successfully");
-    }
+
+    // Update the toast once the request completes successfully
+    toast.success("Data synchronized successfully", {
+      id: toastId,
+    });
+
     return { success: true, data };
   } catch (error) {
+    // Update the same toast to show the error
     toast.error("Data synchronization failed", {
-      description: error instanceof Error ? error.message : "Unknown error",
+      id: toastId,
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     });
+
     console.error("[v0] Error synchronizing data:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
       data: null,
     };
   }

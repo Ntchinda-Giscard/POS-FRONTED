@@ -1,36 +1,55 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { mockCustomers } from "@/lib/mock-data"
-import type { Customer } from "@/types/pos"
-import { User, Plus } from "lucide-react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { mockCustomers } from "@/lib/mock-data";
+import type { Customer } from "@/types/pos";
+import { User, Plus } from "lucide-react";
 
 interface CustomerSelectorProps {
-  selectedCustomer?: Customer
-  onCustomerSelect: (customer: Customer | undefined) => void
+  selectedCustomer?: Customer;
+  onCustomerSelect: (customer: Customer | undefined) => void;
 }
 
-export function CustomerSelector({ selectedCustomer, onCustomerSelect }: CustomerSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [newCustomer, setNewCustomer] = useState({ name: "", email: "", phone: "" })
+export function CustomerSelector({
+  selectedCustomer,
+  onCustomerSelect,
+}: CustomerSelectorProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
 
   const handleSelectExisting = (customerId: string) => {
     if (customerId === "none") {
-      onCustomerSelect(undefined)
+      onCustomerSelect(undefined);
     } else {
-      const customer = mockCustomers.find((c) => c.id === customerId)
-      onCustomerSelect(customer)
+      const customer = mockCustomers.find((c) => c.id === customerId);
+      onCustomerSelect(customer);
     }
-    setIsOpen(false)
-  }
+    setIsOpen(false);
+  };
 
   const handleCreateNew = () => {
-    if (!newCustomer.name.trim()) return
+    if (!newCustomer.name.trim()) return;
 
     const customer: Customer = {
       id: `customer-${Date.now()}`,
@@ -38,19 +57,28 @@ export function CustomerSelector({ selectedCustomer, onCustomerSelect }: Custome
       email: newCustomer.email || undefined,
       phone: newCustomer.phone || undefined,
       totalPurchases: 0,
-    }
+      customerCode: "",
+      creditLimit: 0,
+      paymentTerms: "",
+      isActive: false,
+    };
 
-    onCustomerSelect(customer)
-    setNewCustomer({ name: "", email: "", phone: "" })
-    setIsOpen(false)
-  }
+    onCustomerSelect(customer);
+    setNewCustomer({ name: "", email: "", phone: "" });
+    setIsOpen(false);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full justify-start bg-transparent">
+        <Button
+          variant="outline"
+          className="w-full justify-start bg-transparent"
+        >
           <User className="h-4 w-4 mr-2" />
-          {selectedCustomer ? selectedCustomer.name : "Select Customer (Optional)"}
+          {selectedCustomer
+            ? selectedCustomer.name
+            : "Select Customer (Optional)"}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -86,7 +114,12 @@ export function CustomerSelector({ selectedCustomer, onCustomerSelect }: Custome
                 <Input
                   id="name"
                   value={newCustomer.name}
-                  onChange={(e) => setNewCustomer((prev) => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setNewCustomer((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
                   placeholder="Customer name"
                 />
               </div>
@@ -96,7 +129,12 @@ export function CustomerSelector({ selectedCustomer, onCustomerSelect }: Custome
                   id="email"
                   type="email"
                   value={newCustomer.email}
-                  onChange={(e) => setNewCustomer((prev) => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) =>
+                    setNewCustomer((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
+                  }
                   placeholder="customer@example.com"
                 />
               </div>
@@ -105,11 +143,20 @@ export function CustomerSelector({ selectedCustomer, onCustomerSelect }: Custome
                 <Input
                   id="phone"
                   value={newCustomer.phone}
-                  onChange={(e) => setNewCustomer((prev) => ({ ...prev, phone: e.target.value }))}
+                  onChange={(e) =>
+                    setNewCustomer((prev) => ({
+                      ...prev,
+                      phone: e.target.value,
+                    }))
+                  }
                   placeholder="555-0123"
                 />
               </div>
-              <Button onClick={handleCreateNew} disabled={!newCustomer.name.trim()} className="w-full">
+              <Button
+                onClick={handleCreateNew}
+                disabled={!newCustomer.name.trim()}
+                className="w-full"
+              >
                 Add Customer
               </Button>
             </div>
@@ -117,5 +164,5 @@ export function CustomerSelector({ selectedCustomer, onCustomerSelect }: Custome
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

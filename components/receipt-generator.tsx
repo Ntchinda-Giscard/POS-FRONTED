@@ -1,33 +1,49 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { Transaction } from "@/types/pos"
-import { Printer, Download, Mail, MessageSquare } from "lucide-react"
-import { useRef } from "react"
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import type { Transaction } from "@/types/pos";
+import { Printer, Download, Mail, MessageSquare } from "lucide-react";
+import { useRef } from "react";
 
 interface ReceiptGeneratorProps {
-  transaction: Transaction | null
-  isOpen: boolean
-  onClose: () => void
+  transaction: Transaction | null;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function ReceiptGenerator({ transaction, isOpen, onClose }: ReceiptGeneratorProps) {
-  const receiptRef = useRef<HTMLDivElement>(null)
+export function ReceiptGenerator({
+  transaction,
+  isOpen,
+  onClose,
+}: ReceiptGeneratorProps) {
+  const receiptRef = useRef<HTMLDivElement>(null);
 
-  console.log("[v0] ReceiptGenerator - isOpen:", isOpen, "transaction:", transaction)
+  console.log(
+    "[v0] ReceiptGenerator - isOpen:",
+    isOpen,
+    "transaction:",
+    transaction
+  );
 
   if (!transaction) {
-    console.log("[v0] ReceiptGenerator - No transaction provided, returning null")
-    return null
+    console.log(
+      "[v0] ReceiptGenerator - No transaction provided, returning null"
+    );
+    return null;
   }
 
   const handlePrint = () => {
-    const printContent = receiptRef.current
-    if (!printContent) return
+    const printContent = receiptRef.current;
+    if (!printContent) return;
 
-    const printWindow = window.open("", "_blank")
-    if (!printWindow) return
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
 
     printWindow.document.write(`
       <html>
@@ -67,31 +83,43 @@ export function ReceiptGenerator({ transaction, isOpen, onClose }: ReceiptGenera
           ${printContent.innerHTML}
         </body>
       </html>
-    `)
+    `);
 
-    printWindow.document.close()
-    printWindow.focus()
-    printWindow.print()
-    printWindow.close()
-  }
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
 
   const handleDownloadPDF = () => {
     // Simple implementation - in a real app, you'd use a PDF library like jsPDF
-    handlePrint()
-  }
+    handlePrint();
+  };
 
   const handleEmailReceipt = () => {
-    const subject = `Receipt - Transaction ${transaction.id.slice(-6)}`
-    const body = `Thank you for your purchase!\n\nTransaction ID: ${transaction.id}\nTotal: $${transaction.total.toFixed(2)}\nDate: ${transaction.timestamp.toLocaleString()}`
-    const mailtoLink = `mailto:${transaction.customer?.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    window.open(mailtoLink)
-  }
+    const subject = `Receipt - Transaction ${transaction.id.slice(-6)}`;
+    const body = `Thank you for your purchase!\n\nTransaction ID: ${
+      transaction.id
+    }\nTotal: $${transaction.total.toFixed(
+      2
+    )}\nDate: ${transaction.timestamp.toLocaleString()}`;
+    const mailtoLink = `mailto:${
+      transaction.customer?.email || ""
+    }?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink);
+  };
 
   const handleSMSReceipt = () => {
-    const message = `Receipt: Transaction ${transaction.id.slice(-6)} - Total: $${transaction.total.toFixed(2)} - Thank you for your purchase!`
-    const smsLink = `sms:${transaction.customer?.phone || ""}?body=${encodeURIComponent(message)}`
-    window.open(smsLink)
-  }
+    const message = `Receipt: Transaction ${transaction.id.slice(
+      -6
+    )} - Total: $${transaction.total.toFixed(
+      2
+    )} - Thank you for your purchase!`;
+    const smsLink = `sms:${
+      transaction.customer?.phone || ""
+    }?body=${encodeURIComponent(message)}`;
+    window.open(smsLink);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -141,7 +169,7 @@ export function ReceiptGenerator({ transaction, isOpen, onClose }: ReceiptGenera
                 <div className="bold">{item.product.name}</div>
                 <div className="flex">
                   <span>
-                    {item.quantity} x ${item.unitPrice.toFixed(2)}
+                    {item.quantity} x ${item.unitpriceHT.toFixed(2)}
                   </span>
                   <span>${item.totalPrice.toFixed(2)}</span>
                 </div>
@@ -187,18 +215,30 @@ export function ReceiptGenerator({ transaction, isOpen, onClose }: ReceiptGenera
               <Printer className="h-4 w-4" />
               Print
             </Button>
-            <Button onClick={handleDownloadPDF} variant="outline" className="flex items-center gap-2 bg-transparent">
+            <Button
+              onClick={handleDownloadPDF}
+              variant="outline"
+              className="flex items-center gap-2 bg-transparent"
+            >
               <Download className="h-4 w-4" />
               PDF
             </Button>
             {transaction.customer?.email && (
-              <Button onClick={handleEmailReceipt} variant="outline" className="flex items-center gap-2 bg-transparent">
+              <Button
+                onClick={handleEmailReceipt}
+                variant="outline"
+                className="flex items-center gap-2 bg-transparent"
+              >
                 <Mail className="h-4 w-4" />
                 Email
               </Button>
             )}
             {transaction.customer?.phone && (
-              <Button onClick={handleSMSReceipt} variant="outline" className="flex items-center gap-2 bg-transparent">
+              <Button
+                onClick={handleSMSReceipt}
+                variant="outline"
+                className="flex items-center gap-2 bg-transparent"
+              >
                 <MessageSquare className="h-4 w-4" />
                 SMS
               </Button>
@@ -211,5 +251,5 @@ export function ReceiptGenerator({ transaction, isOpen, onClose }: ReceiptGenera
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

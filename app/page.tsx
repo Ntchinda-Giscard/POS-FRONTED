@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +38,7 @@ import {
   TrendingUp,
   Calculator,
   Repeat,
+  Folder,
 } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,6 +89,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Label } from "@/components/ui/label";
 
 const tabs = [
   {
@@ -141,6 +149,8 @@ export default function POSApp() {
   const [products, setProducts] = useState<Product[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showReceiptGenerator, setShowReceiptGenerator] = useState(false);
+  const [folderPath, setFolderPath] = useState("");
+
   const [productQuantities, setProductQuantities] = useState<
     Record<string, number>
   >({});
@@ -720,6 +730,21 @@ export default function POSApp() {
     }
   };
 
+  const handleFolderSelect = async () => {
+    if ("showDirectoryPicker" in window) {
+      try {
+        const dirHandle = await (window as any).showDirectoryPicker();
+        setFolderPath(dirHandle.name);
+      } catch (err) {
+        console.log("Sélection du dossier annulée");
+      }
+    } else {
+      alert(
+        "La sélection de dossier n'est pas supportée par ce navigateur. Veuillez utiliser Chrome ou Edge."
+      );
+    }
+  };
+
   const renderCurrentView = () => {
     switch (currentView) {
       case "dashboard":
@@ -797,10 +822,46 @@ export default function POSApp() {
       case "settings":
         return (
           <div className="space-y-6">
-            <Card className="transition-all duration-200 hover:shadow-lg">
-              <CardHeader>
-                <CardTitle>Settings</CardTitle>
-              </CardHeader>
+            <Card className="transition-all duration-200 hover:shadow-lg p-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Folder className="h-5 w-5" />
+                    Stockage des fichiers
+                  </CardTitle>
+                  <CardDescription>
+                    Configurez l'emplacement de sauvegarde de vos fichiers
+                  </CardDescription>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="folder">Dossier de sauvegarde</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="folder"
+                          type="text"
+                          value={folderPath}
+                          placeholder="Aucun dossier sélectionné"
+                          readOnly
+                          className="flex-1 bg-muted cursor-not-allowed"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={handleFolderSelect}
+                          aria-label="Sélectionner un dossier"
+                        >
+                          <Folder className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Cliquez sur l'icône pour sélectionner un dossier de
+                        destination
+                      </p>
+                    </div>
+                  </CardContent>
+                </CardHeader>
+              </Card>
             </Card>
           </div>
         );
@@ -1099,22 +1160,22 @@ export default function POSApp() {
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-3xl font-bold text-foreground">
                 {currentView === "pos"
-                  ? "Point of Sale"
+                  ? "Point de vente"
                   : currentView === "dashboard"
-                  ? "Sales Dashboard"
+                  ? "Tableau de bord des ventes"
                   : currentView === "history"
-                  ? "Transaction History"
+                  ? "Historique des transactions"
                   : currentView === "customers"
-                  ? "Customers"
+                  ? "Clients"
                   : currentView === "inventory"
-                  ? "Inventory"
+                  ? "Inventaire"
                   : currentView === "reports"
-                  ? "Reports"
+                  ? "Rapports"
                   : currentView === "receipts"
-                  ? "Receipts"
+                  ? "Reçus"
                   : currentView === "settings"
-                  ? "Settings"
-                  : "POS System"}
+                  ? "Paramètres"
+                  : "Point de vente"}
               </h1>
 
               <div className="flex items-center gap-4">
@@ -1164,22 +1225,22 @@ export default function POSApp() {
             <div className="flex items-center justify-between flex-1">
               <p className="text-muted-foreground">
                 {currentView === "pos"
-                  ? "Point of Sale"
+                  ? "Point de vente"
                   : currentView === "dashboard"
-                  ? "Sales Dashboard"
+                  ? "Tableau de bord des ventes"
                   : currentView === "history"
-                  ? "Transaction History"
+                  ? "Historique des transactions"
                   : currentView === "customers"
-                  ? "Customers"
+                  ? "Clients"
                   : currentView === "inventory"
-                  ? "Inventory"
+                  ? "Inventaire"
                   : currentView === "reports"
-                  ? "Reports"
+                  ? "Rapports"
                   : currentView === "receipts"
-                  ? "Receipts"
+                  ? "Reçus"
                   : currentView === "settings"
-                  ? "Settings"
-                  : "Professional point of sale system"}
+                  ? "Paramètres"
+                  : "Point de vente"}
               </p>
               {transactionHistory.length > 0 && currentView === "pos" && (
                 <div className="text-sm text-muted-foreground">

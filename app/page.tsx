@@ -90,6 +90,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
+import { ReportsContent } from "@/components/reports";
+import { SettingsForm } from "@/components/settings";
 
 const tabs = [
   {
@@ -820,51 +822,9 @@ export default function POSApp() {
           </div>
         );
       case "settings":
-        return (
-          <div className="space-y-6">
-            <Card className="transition-all duration-200 hover:shadow-lg p-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Folder className="h-5 w-5" />
-                    Stockage des fichiers
-                  </CardTitle>
-                  <CardDescription>
-                    Configurez l'emplacement de sauvegarde de vos fichiers
-                  </CardDescription>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="folder">Dossier de sauvegarde</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="folder"
-                          type="text"
-                          value={folderPath}
-                          placeholder="Aucun dossier sélectionné"
-                          readOnly
-                          className="flex-1 bg-muted cursor-not-allowed"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={handleFolderSelect}
-                          aria-label="Sélectionner un dossier"
-                        >
-                          <Folder className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Cliquez sur l'icône pour sélectionner un dossier de
-                        destination
-                      </p>
-                    </div>
-                  </CardContent>
-                </CardHeader>
-              </Card>
-            </Card>
-          </div>
-        );
+        return <SettingsForm />;
+      case "reports":
+        return <ReportsContent />;
       default:
         return (
           <div className="space-y-6">

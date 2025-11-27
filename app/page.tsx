@@ -546,6 +546,7 @@ export default function POSApp() {
           valoTotalHT,
           valoTotalTTC: valoTotalTTc,
         },
+        customer: undefined,
       };
 
       console.log("Transaction processed:", transaction);
@@ -1093,6 +1094,16 @@ export default function POSApp() {
                   ? "Sales Dashboard"
                   : currentView === "history"
                   ? "Transaction History"
+                  : currentView === "customers"
+                  ? "Customers"
+                  : currentView === "inventory"
+                  ? "Inventory"
+                  : currentView === "reports"
+                  ? "Reports"
+                  : currentView === "receipts"
+                  ? "Receipts"
+                  : currentView === "settings"
+                  ? "Settings"
                   : "POS System"}
               </h1>
 

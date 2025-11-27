@@ -794,6 +794,16 @@ export default function POSApp() {
             </Card>
           </div>
         );
+      case "settings":
+        return (
+          <div className="space-y-6">
+            <Card className="transition-all duration-200 hover:shadow-lg">
+              <CardHeader>
+                <CardTitle>Settings</CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+        );
       default:
         return (
           <div className="space-y-6">
@@ -1154,11 +1164,21 @@ export default function POSApp() {
             <div className="flex items-center justify-between flex-1">
               <p className="text-muted-foreground">
                 {currentView === "pos"
-                  ? "Interactive article cards with quantity controls"
+                  ? "Point of Sale"
                   : currentView === "dashboard"
-                  ? "Analytics and insights"
+                  ? "Sales Dashboard"
                   : currentView === "history"
-                  ? "View all transactions"
+                  ? "Transaction History"
+                  : currentView === "customers"
+                  ? "Customers"
+                  : currentView === "inventory"
+                  ? "Inventory"
+                  : currentView === "reports"
+                  ? "Reports"
+                  : currentView === "receipts"
+                  ? "Receipts"
+                  : currentView === "settings"
+                  ? "Settings"
                   : "Professional point of sale system"}
               </p>
               {transactionHistory.length > 0 && currentView === "pos" && (

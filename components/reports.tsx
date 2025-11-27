@@ -37,6 +37,12 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import {
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "./ui/chart";
 
 const salesData = [
   { jour: "Lun", ventes: 1200, transactions: 45 },
@@ -170,31 +176,44 @@ export function ReportsContent() {
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesData}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-muted"
+                {/* data={salesData} */}
+                <AreaChart
+                  accessibilityLayer
+                  data={salesData}
+                  margin={{
+                    left: 12,
+                    right: 12,
+                  }}
+                >
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) => value.slice(0, 3)}
                   />
-                  <XAxis dataKey="jour" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(value: number) => [
-                      `${value.toFixed(2)} €`,
-                      "Ventes",
-                    ]}
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="line" />}
                   />
                   <Area
-                    type="monotone"
-                    dataKey="ventes"
-                    stroke="hsl(var(--primary))"
-                    fill="hsl(var(--primary) / 0.2)"
-                    strokeWidth={2}
+                    dataKey="mobile"
+                    type="natural"
+                    fill="var(--color-mobile)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-mobile)"
+                    stackId="a"
                   />
+                  <Area
+                    dataKey="desktop"
+                    type="natural"
+                    fill="var(--color-desktop)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-desktop)"
+                    stackId="a"
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -209,33 +228,31 @@ export function ReportsContent() {
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={paymentMethods} layout="vertical">
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-muted"
-                  />
-                  <XAxis type="number" className="text-xs" />
+                <BarChart
+                  accessibilityLayer
+                  data={paymentMethods}
+                  layout="vertical"
+                  margin={{
+                    left: -20,
+                  }}
+                >
+                  <XAxis type="number" dataKey="desktop" hide />
                   <YAxis
-                    dataKey="methode"
+                    dataKey="month"
                     type="category"
-                    className="text-xs"
-                    width={80}
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                    tickFormatter={(value) => value.slice(0, 3)}
                   />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(value: number) => [
-                      `${value.toFixed(2)} €`,
-                      "Montant",
-                    ]}
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
                   />
                   <Bar
-                    dataKey="montant"
-                    fill="hsl(var(--primary))"
-                    radius={[0, 4, 4, 0]}
+                    dataKey="desktop"
+                    fill="var(--color-desktop)"
+                    radius={5}
                   />
                 </BarChart>
               </ResponsiveContainer>

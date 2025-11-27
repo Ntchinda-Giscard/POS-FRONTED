@@ -92,6 +92,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { ReportsContent } from "@/components/reports";
 import { SettingsForm } from "@/components/settings";
+import { ReceiptsContent } from "@/components/receipts";
 
 const tabs = [
   {
@@ -825,6 +826,8 @@ export default function POSApp() {
         return <SettingsForm />;
       case "reports":
         return <ReportsContent />;
+      case "receipts":
+        return <ReceiptsContent />;
       default:
         return (
           <div className="space-y-6">

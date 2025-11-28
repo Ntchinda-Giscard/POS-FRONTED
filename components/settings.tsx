@@ -124,6 +124,19 @@ export function SettingsForm() {
               />
             </div>
           </div>
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <Button size="lg" onClick={handleSubmit}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                "Sauvegarder"
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -166,20 +179,6 @@ export function SettingsForm() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button size="lg" onClick={handleSubmit}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Enregistrement...
-            </>
-          ) : (
-            "Sauvegarder"
-          )}
-        </Button>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 type POPServer = {
-  server: string;
+  popServer: string;
   username: string;
   port: number;
   password: string;
@@ -19,12 +19,12 @@ interface POPServerState {
 const usePOPServerStore = create<POPServerState>()((set, get) => ({
   selectedPOPServer: null,
   selectedPOPServerServer: "",
-  popServers: { server: "", username: "", port: 0, password: "" },
+  popServers: { popServer: "", username: "", port: 0, password: "" },
 
   setSelectedPOPServer: (popServer: POPServer) =>
     set({
       selectedPOPServer: popServer,
-      selectedPOPServerServer: popServer.server,
+      selectedPOPServerServer: popServer.popServer,
     }),
 
   setPOPServers: (popServers: POPServer) => set({ popServers }),

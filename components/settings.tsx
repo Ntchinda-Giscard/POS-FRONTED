@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Folder, Receipt, CreditCard, Store, Mail } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
+import usePOPServerStore from "@/stores/pop-server";
 
 export function SettingsForm() {
   const [folderPath, setFolderPath] = useState("");
@@ -29,6 +30,7 @@ export function SettingsForm() {
   const [currency, setCurrency] = useState("eur");
   const [taxRate, setTaxRate] = useState("20");
   const [receiptFormat, setReceiptFormat] = useState("80mm");
+  const { selectedPOPServer, setSelectedPOPServer } = usePOPServerStore();
 
   const handleFolderSelect = async () => {
     if ("showDirectoryPicker" in window) {

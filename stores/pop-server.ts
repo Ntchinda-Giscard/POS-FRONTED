@@ -8,31 +8,32 @@ type POPServer = {
 };
 
 interface POPServerState {
-  selectedPOPServer: POPServer | null;
-  selectedPOPServerServer: string;
-  popServers: POPServer;
-  setSelectedPOPServer: (popServer: POPServer) => void;
-  setPOPServers: (popServers: POPServer) => void;
+  selectedPOPServer: POPServer;
+  setSelectedPOPServer: (popServer: Partial<POPServer>) => void;
   clearSelection: () => void;
 }
 
+const defaultPOPServer: POPServer = {
+  popServer: "",
+  username: "",
+  port: 995,
+  password: "",
+};
+
 const usePOPServerStore = create<POPServerState>()((set, get) => ({
-  selectedPOPServer: null,
-  selectedPOPServerServer: "",
-  popServers: { popServer: "", username: "", port: 0, password: "" },
+  selectedPOPServer: defaultPOPServer,
 
-  setSelectedPOPServer: (popServer: POPServer) =>
-    set({
-      selectedPOPServer: popServer,
-      selectedPOPServerServer: popServer.popServer,
-    }),
-
-  setPOPServers: (popServers: POPServer) => set({ popServers }),
+  setSelectedPOPServer: (popServer: Partial<POPServer>) =>
+    set((state) => ({
+      selectedPOPServer: {
+        ...state.selectedPOPServer,
+        ...popServer,
+      },
+    })),
 
   clearSelection: () =>
     set({
-      selectedPOPServer: null,
-      selectedPOPServerServer: "",
+      selectedPOPServer: defaultPOPServer,
     }),
 }));
 

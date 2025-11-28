@@ -19,7 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Folder, Receipt, CreditCard, Store, Mail } from "lucide-react";
+import {
+  Folder,
+  Receipt,
+  CreditCard,
+  Store,
+  Mail,
+  Loader2,
+} from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import usePOPServerStore from "@/stores/pop-server";
 
@@ -30,6 +37,7 @@ export function SettingsForm() {
   const [currency, setCurrency] = useState("eur");
   const [taxRate, setTaxRate] = useState("20");
   const [receiptFormat, setReceiptFormat] = useState("80mm");
+  const [isLoading, setIsLoading] = useState(false);
   const { selectedPOPServer, setSelectedPOPServer } = usePOPServerStore();
 
   const handleFolderSelect = async () => {
@@ -45,6 +53,18 @@ export function SettingsForm() {
         "La sélection de dossier n'est pas supportée par ce navigateur. Veuillez utiliser Chrome ou Edge."
       );
     }
+  };
+
+  const handleSubmit = (config: typeof selectedPOPServer) => {
+    console.log("Submitting settings...");
+    console.log("Submitting config:", config);
+    setIsLoading(true);
+    // Simulate an API call or some async operation
+    setTimeout(() => {
+      console.log("Configuration saved:", config);
+      setIsLoading(false);
+    }, 2000);
+    console.log("Submitted config.");
   };
 
   return (
@@ -93,24 +113,29 @@ export function SettingsForm() {
             <div className="space-y-2">
               <Label className="">Serveur POP</Label>
               <Input
-                // value={emailConfig.smtpServer}
-                // onChange={(e) => setEmailConfig({ smtpServer: e.target.value })}
+                value={selectedPOPServer?.popServer || ""}
+                onChange={(e) =>
+                  setSelectedPOPServer({
+                    ...selectedPOPServer,
+                    popServer: e.target.value,
+                  })
+                }
                 className=""
-                placeholder="smtp.gmail.com"
+                placeholder="pop.gmail.com"
               />
             </div>
             <div className="space-y-2">
-              <Label className="">Port SMTP</Label>
+              <Label className="">Port POP</Label>
               <Input
                 type="number"
-                // value={emailConfig.smtpPort}
-                // onChange={(e) =>
-                //   setEmailConfig({
-                //     smtpPort: Number.parseInt(e.target.value) || 587,
-                //   })
-                // }
+                value={selectedPOPServer?.port || ""}
+                onChange={(e) =>
+                  setSelectedPOPServer({
+                    port: Number.parseInt(e.target.value) || 995,
+                  })
+                }
                 className=""
-                placeholder="587"
+                placeholder="995"
               />
             </div>
           </div>
@@ -120,10 +145,13 @@ export function SettingsForm() {
               <Label className="">Email d'Expédition</Label>
               <Input
                 type="email"
-                // value={emailConfig.senderEmail}
-                // onChange={(e) =>
-                //   setEmailConfig({ senderEmail: e.target.value })
-                // }
+                value={selectedPOPServer?.username}
+                onChange={(e) =>
+                  setSelectedPOPServer({
+                    ...selectedPOPServer,
+                    username: e.target.value,
+                  })
+                }
                 className=""
                 placeholder="noreply@company.com"
               />
@@ -132,17 +160,20 @@ export function SettingsForm() {
               <Label className="">Mot de Passe</Label>
               <Input
                 type="password"
-                // value={emailConfig.senderPassword}
-                // onChange={(e) =>
-                //   setEmailConfig({ senderPassword: e.target.value })
-                // }
+                value={selectedPOPServer?.password}
+                onChange={(e) =>
+                  setSelectedPOPServer({
+                    ...selectedPOPServer,
+                    password: e.target.value,
+                  })
+                }
                 className=""
                 placeholder="••••••••"
               />
             </div>
           </div>
 
-          <div className="space-y-3">
+          {/* <div className="space-y-3">
             <Label className="">Options de Sécurité</Label>
             <div className="flex space-x-6">
               <div className="flex items-center space-x-2">
@@ -170,7 +201,7 @@ export function SettingsForm() {
                 </Label>
               </div>
             </div>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
 
@@ -216,7 +247,21 @@ export function SettingsForm() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button size="lg">Enregistrer les paramètres</Button>
+        <Button
+          size="lg"
+          onClick={() => {
+            handleSubmit(selectedPOPServer);
+          }}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Enregistrement...
+            </>
+          ) : (
+            "Sauvegarder"
+          )}
+        </Button>
       </div>
     </div>
   );

@@ -42,6 +42,7 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
+  ChartContainer,
 } from "./ui/chart";
 
 const salesData = [
@@ -175,51 +176,63 @@ export function ReportsContent() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                {/* data={salesData} */}
-                <AreaChart
-                  accessibilityLayer
-                  data={salesData}
-                  margin={{
-                    left: 12,
-                    right: 12,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="line" />}
-                  />
-                  <Area
-                    dataKey="mobile"
-                    type="natural"
-                    fill="var(--color-mobile)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-mobile)"
-                    stackId="a"
-                  />
-                  <Area
-                    dataKey="desktop"
-                    type="natural"
-                    fill="var(--color-desktop)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-desktop)"
-                    stackId="a"
-                  />
-                  <ChartLegend content={<ChartLegendContent />} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <ChartContainer
+                config={{
+                  ventes: {
+                    label: "Ventes",
+                    color: "hsl(var(--chart-1))",
+                  },
+                  transactions: {
+                    label: "Transactions",
+                    color: "hsl(var(--chart-2))",
+                  },
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  {/* data={salesData} */}
+                  <AreaChart
+                    accessibilityLayer
+                    data={salesData}
+                    margin={{
+                      left: 12,
+                      right: 12,
+                    }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(value) => value.slice(0, 3)}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="line" />}
+                    />
+                    <Area
+                      dataKey="mobile"
+                      type="natural"
+                      fill="var(--color-mobile)"
+                      fillOpacity={0.4}
+                      stroke="var(--color-mobile)"
+                      stackId="a"
+                    />
+                    <Area
+                      dataKey="desktop"
+                      type="natural"
+                      fill="var(--color-desktop)"
+                      fillOpacity={0.4}
+                      stroke="var(--color-desktop)"
+                      stackId="a"
+                    />
+                    <ChartLegend content={<ChartLegendContent />} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Méthodes de paiement</CardTitle>
@@ -227,35 +240,44 @@ export function ReportsContent() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  accessibilityLayer
-                  data={paymentMethods}
-                  layout="vertical"
-                  margin={{
-                    left: -20,
-                  }}
-                >
-                  <XAxis type="number" dataKey="desktop" hide />
-                  <YAxis
-                    dataKey="month"
-                    type="category"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                  <Bar
-                    dataKey="desktop"
-                    fill="var(--color-desktop)"
-                    radius={5}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartContainer
+                config={{
+                  montant: {
+                    label: "Montant",
+                    color: "hsl(var(--chart-1))",
+                  },
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    accessibilityLayer
+                    data={paymentMethods}
+                    layout="vertical"
+                    margin={{
+                      left: -20,
+                    }}
+                  >
+                    <XAxis type="number" dataKey="desktop" hide />
+                    <YAxis
+                      dataKey="month"
+                      type="category"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      tickFormatter={(value) => value.slice(0, 3)}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel />}
+                    />
+                    <Bar
+                      dataKey="desktop"
+                      fill="var(--color-desktop)"
+                      radius={5}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>

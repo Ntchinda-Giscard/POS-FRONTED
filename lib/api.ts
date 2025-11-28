@@ -846,3 +846,35 @@ export async function saveSettingsPOP(request: POPServer) {
     };
   }
 }
+
+export async function getSettingsPOP() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/settings/get`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Récupération des paramètres a échoué");
+    const data = await response.json();
+    toast.success("Paramètres récupérés avec succès");
+    return { success: true, data };
+  } catch (error) {
+    toast.error("La récupération des paramètres a échoué", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+    });
+    console.error("[v0] Error creating sales order:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+      data: null,
+    };
+  }
+}

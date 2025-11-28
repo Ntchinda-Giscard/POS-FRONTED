@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,12 +29,21 @@ import {
 } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import usePOPServerStore from "@/stores/pop-server";
-import { saveSettingsPOP } from "@/lib/api";
+import { getSettingsPOP, saveSettingsPOP } from "@/lib/api";
 
 export function SettingsForm() {
   const [folderPath, setFolderPath] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { selectedPOPServer, setSelectedPOPServer } = usePOPServerStore();
+
+  useEffect(() => {
+    const loadSettingPOP = async () => {
+      // Here you can implement loading existing settings if needed
+      const response = await getSettingsPOP();
+      setSelectedPOPServer(response.data);
+    };
+    loadSettingPOP();
+  }, []);
 
   const handleFolderSelect = async () => {
     if ("showDirectoryPicker" in window) {

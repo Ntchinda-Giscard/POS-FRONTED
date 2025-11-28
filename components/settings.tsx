@@ -32,11 +32,6 @@ import usePOPServerStore from "@/stores/pop-server";
 
 export function SettingsForm() {
   const [folderPath, setFolderPath] = useState("");
-  const [autoPrint, setAutoPrint] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [currency, setCurrency] = useState("eur");
-  const [taxRate, setTaxRate] = useState("20");
-  const [receiptFormat, setReceiptFormat] = useState("80mm");
   const [isLoading, setIsLoading] = useState(false);
   const { selectedPOPServer, setSelectedPOPServer } = usePOPServerStore();
 
@@ -55,51 +50,21 @@ export function SettingsForm() {
     }
   };
 
-  const handleSubmit = (config: typeof selectedPOPServer) => {
+  const handleSubmit = () => {
     console.log("Submitting settings...");
-    console.log("Submitting config:", config);
+    console.log("Submitting config:", selectedPOPServer);
     setIsLoading(true);
-    // Simulate an API call or some async operation
+
     setTimeout(() => {
-      console.log("Configuration saved:", config);
+      console.log("Configuration saved:", selectedPOPServer);
       setIsLoading(false);
     }, 2000);
+
     console.log("Submitted config.");
   };
 
   return (
     <div className="space-y-6">
-      {/* Store Information */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Store className="h-5 w-5" />
-            Informations du magasin
-          </CardTitle>
-          <CardDescription>
-            Configurez les informations de votre point de vente
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="storeName">Nom du magasin</Label>
-            <Input id="storeName" type="text" placeholder="Mon Magasin" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="storeAddress">Adresse</Label>
-            <Input
-              id="storeAddress"
-              type="text"
-              placeholder="123 Rue du Commerce, 75001 Paris"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="siret">Numéro SIRET</Label>
-            <Input id="siret" type="text" placeholder="123 456 789 00012" />
-          </div>
-        </CardContent>
-      </Card> */}
-
       {/* POP server configuration */}
       <Card className="w-full">
         <CardHeader>
@@ -111,30 +76,27 @@ export function SettingsForm() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="">Serveur POP</Label>
+              <Label>Serveur POP</Label>
               <Input
-                value={selectedPOPServer?.popServer || ""}
+                value={selectedPOPServer.popServer}
                 onChange={(e) =>
                   setSelectedPOPServer({
-                    ...selectedPOPServer,
                     popServer: e.target.value,
                   })
                 }
-                className=""
                 placeholder="pop.gmail.com"
               />
             </div>
             <div className="space-y-2">
-              <Label className="">Port POP</Label>
+              <Label>Port POP</Label>
               <Input
                 type="number"
-                value={selectedPOPServer?.port || ""}
+                value={selectedPOPServer.port}
                 onChange={(e) =>
                   setSelectedPOPServer({
                     port: Number.parseInt(e.target.value) || 995,
                   })
                 }
-                className=""
                 placeholder="995"
               />
             </div>
@@ -142,70 +104,36 @@ export function SettingsForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="">Email d'Expédition</Label>
+              <Label>Email d'Expédition</Label>
               <Input
                 type="email"
-                value={selectedPOPServer?.username}
+                value={selectedPOPServer.username}
                 onChange={(e) =>
                   setSelectedPOPServer({
-                    ...selectedPOPServer,
                     username: e.target.value,
                   })
                 }
-                className=""
                 placeholder="noreply@company.com"
               />
             </div>
             <div className="space-y-2">
-              <Label className="">Mot de Passe</Label>
+              <Label>Mot de Passe</Label>
               <Input
                 type="password"
-                value={selectedPOPServer?.password}
+                value={selectedPOPServer.password}
                 onChange={(e) =>
                   setSelectedPOPServer({
-                    ...selectedPOPServer,
                     password: e.target.value,
                   })
                 }
-                className=""
                 placeholder="••••••••"
               />
             </div>
           </div>
-
-          {/* <div className="space-y-3">
-            <Label className="">Options de Sécurité</Label>
-            <div className="flex space-x-6">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="ssl"
-                  // checked={emailConfig.useSSL}
-                  // onCheckedChange={(checked) =>
-                  //   setEmailConfig({ useSSL: checked as boolean })
-                  // }
-                />
-                <Label htmlFor="ssl" className="">
-                  Utiliser SSL
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="tls"
-                  // checked={emailConfig.useTLS}
-                  // onCheckedChange={(checked) =>
-                  //   setEmailConfig({ useTLS: checked as boolean })
-                  // }
-                />
-                <Label htmlFor="tls" className="">
-                  Utiliser TLS
-                </Label>
-              </div>
-            </div>
-          </div> */}
         </CardContent>
       </Card>
 
-      {/* File Storage - Original folder selection */}
+      {/* File Storage */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -247,12 +175,7 @@ export function SettingsForm() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button
-          size="lg"
-          onClick={() => {
-            handleSubmit(selectedPOPServer);
-          }}
-        >
+        <Button size="lg" onClick={handleSubmit}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

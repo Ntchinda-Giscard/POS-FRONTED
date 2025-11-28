@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type POPServer = {
+export type POPServer = {
   popServer: string;
   username: string;
   port: number;
@@ -20,21 +20,27 @@ const defaultPOPServer: POPServer = {
   password: "",
 };
 
-const usePOPServerStore = create<POPServerState>()((set, get) => ({
-  selectedPOPServer: defaultPOPServer,
+const usePOPServerStore = create<POPServerState>()((set, get) => {
+  console.log("Store initialized"); // Add this
 
-  setSelectedPOPServer: (popServer: Partial<POPServer>) =>
-    set((state) => ({
-      selectedPOPServer: {
-        ...state.selectedPOPServer,
-        ...popServer,
-      },
-    })),
+  return {
+    selectedPOPServer: defaultPOPServer,
 
-  clearSelection: () =>
-    set({
-      selectedPOPServer: defaultPOPServer,
-    }),
-}));
+    setSelectedPOPServer: (popServer: Partial<POPServer>) => {
+      console.log("setSelectedPOPServer called with:", popServer); // Add this
+      set((state) => ({
+        selectedPOPServer: {
+          ...state.selectedPOPServer,
+          ...popServer,
+        },
+      }));
+    },
+
+    clearSelection: () =>
+      set({
+        selectedPOPServer: defaultPOPServer,
+      }),
+  };
+});
 
 export default usePOPServerStore;

@@ -11,6 +11,7 @@ import type {
   SalesOrder,
 } from "@/types/pos";
 import { toast } from "sonner";
+import { POPServer } from "@/stores/pop-server";
 
 const API_BASE_URL = "http://127.0.0.1:7626";
 
@@ -23,6 +24,13 @@ export interface ApiResponse<T> {
 
 type TaxRegime = {
   code: string;
+};
+
+type SettingsInput = {
+  pop_server: string;
+  username: string;
+  port: number;
+  password: string;
 };
 
 type CurrencyType = {
@@ -795,6 +803,39 @@ export async function synchronizeData() {
     });
 
     console.error("[v0] Error synchronizing data:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+      data: null,
+    };
+  }
+}
+
+export async function saveSettingsPOP(request: POPServer) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/settings/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Sauvegarde des paramètres a échoué");
+    const data = await response.json();
+    toast.success("Paramètres sauvegardés avec succès");
+    return { success: true, data };
+  } catch (error) {
+    toast.error("La sauvegarde des paramètres a échoué", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+    });
+    console.error("[v0] Error creating sales order:", error);
     return {
       success: false,
       error:

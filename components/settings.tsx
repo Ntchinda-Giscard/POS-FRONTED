@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import usePOPServerStore from "@/stores/pop-server";
+import { saveSettingsPOP } from "@/lib/api";
 
 export function SettingsForm() {
   const [folderPath, setFolderPath] = useState("");
@@ -50,17 +51,10 @@ export function SettingsForm() {
     }
   };
 
-  const handleSubmit = () => {
-    console.log("Submitting settings...");
-    console.log("Submitting config:", selectedPOPServer);
+  const handleSubmit = async () => {
     setIsLoading(true);
-
-    setTimeout(() => {
-      console.log("Configuration saved:", selectedPOPServer);
-      setIsLoading(false);
-    }, 2000);
-
-    console.log("Submitted config.");
+    await saveSettingsPOP(selectedPOPServer);
+    setIsLoading(false);
   };
 
   return (

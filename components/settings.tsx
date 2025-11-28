@@ -48,7 +48,7 @@ export function SettingsForm() {
   return (
     <div className="space-y-6">
       {/* Store Information */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Store className="h-5 w-5" />
@@ -76,7 +76,7 @@ export function SettingsForm() {
             <Input id="siret" type="text" placeholder="123 456 789 00012" />
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* POP server configuration */}
       <Card className="w-full">
@@ -89,7 +89,7 @@ export function SettingsForm() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="">Serveur SMTP</Label>
+              <Label className="">Serveur POP</Label>
               <Input
                 // value={emailConfig.smtpServer}
                 // onChange={(e) => setEmailConfig({ smtpServer: e.target.value })}

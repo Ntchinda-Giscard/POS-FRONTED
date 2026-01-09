@@ -11,25 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Folder,
-  Receipt,
-  CreditCard,
-  Store,
-  Mail,
-  Loader2,
-} from "lucide-react";
-import { Checkbox } from "./ui/checkbox";
+import { Folder, Mail, Loader2 } from "lucide-react";
 import usePOPServerStore from "@/stores/pop-server";
 import { getSettingsPOP, saveSettingsPOP } from "@/lib/api";
+
+declare global {
+  interface Window {
+    electronAPI?: any;
+  }
+}
 
 export function SettingsForm() {
   const [folderPath, setFolderPath] = useState("");
@@ -45,18 +35,33 @@ export function SettingsForm() {
     loadSettingPOP();
   }, []);
 
-  const handleFolderSelect = async () => {
-    if ("showDirectoryPicker" in window) {
-      try {
-        const dirHandle = await (window as any).showDirectoryPicker();
-        setFolderPath(dirHandle.name);
-      } catch (err) {
-        console.log("Sélection du dossier annulée");
-      }
+  const [isElectronAvailable, setIsElectronAvailable] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.electronAPI) {
+      setIsElectronAvailable(true);
+      console.log("Frontend: Electron API is available");
     } else {
+      setIsElectronAvailable(false);
+      console.log("Frontend: Running in web browser mode");
+    }
+  }, []);
+
+  const handleFolderSelect = async () => {
+    if (!isElectronAvailable) {
       alert(
-        "La sélection de dossier n'est pas supportée par ce navigateur. Veuillez utiliser Chrome ou Edge."
+        "La sélection de dossier n'est pas disponible dans le navigateur web."
       );
+      return;
+    }
+    try {
+      const selectedFolder = await window.electronAPI.selectFolder();
+      console.log("Selected folder", selectedFolder);
+      if (selectedFolder) {
+        setFolderPath(selectedFolder);
+      }
+    } catch (e) {
+      console.error("Erreur lors de l'ouverture du sélecteur de dossier :", e);
     }
   };
 

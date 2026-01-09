@@ -24,6 +24,7 @@ declare global {
 export function SettingsForm() {
   const [folderPath, setFolderPath] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingFolder, setIsLoadingFolder] = useState(false);
   const { selectedPOPServer, setSelectedPOPServer } = usePOPServerStore();
 
   useEffect(() => {
@@ -190,6 +191,19 @@ export function SettingsForm() {
             <p className="text-sm text-muted-foreground">
               Cliquez sur l'icône pour sélectionner un dossier de destination
             </p>
+          </div>
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <Button size="lg" onClick={handleSubmit}>
+              {isLoadingFolder ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                "Sauvegarder"
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>

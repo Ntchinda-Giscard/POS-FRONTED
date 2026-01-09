@@ -878,3 +878,36 @@ export async function getSettingsPOP() {
     };
   }
 }
+
+export async function saveFolderConfig(folderPath: string) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/settings/add/folder`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ folder_path: folderPath }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Sauvegarde du dossier a échoué");
+    const data = await response.json();
+    toast.success("Dossier sauvegardé avec succès");
+    return { success: true, data };
+  } catch (error) {
+    toast.error("La sauvegarde du dossier a échoué", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+    });
+    console.error("[v0] Error saving folder configuration:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+      data: null,
+    };
+  }
+}

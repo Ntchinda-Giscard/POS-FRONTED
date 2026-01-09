@@ -886,7 +886,7 @@ export async function saveFolderConfig(folderPath: string) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ folder_path: folderPath }),
+      body: JSON.stringify({ path: folderPath }),
       signal: AbortSignal.timeout(10000),
     });
     if (!response.ok) throw new Error("Sauvegarde du dossier a échoué");

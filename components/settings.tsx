@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Folder, Mail, Loader2 } from "lucide-react";
 import usePOPServerStore from "@/stores/pop-server";
-import { getSettingsPOP, saveSettingsPOP } from "@/lib/api";
+import { getSettingsPOP, saveFolderConfig, saveSettingsPOP } from "@/lib/api";
 
 declare global {
   interface Window {
@@ -70,6 +70,12 @@ export function SettingsForm() {
     setIsLoading(true);
     await saveSettingsPOP(selectedPOPServer);
     setIsLoading(false);
+  };
+
+  const handleSaveFolder = async () => {
+    setIsLoadingFolder(true);
+    await saveFolderConfig(folderPath);
+    setIsLoadingFolder(false);
   };
 
   return (
@@ -194,7 +200,7 @@ export function SettingsForm() {
           </div>
           {/* Save Button */}
           <div className="flex justify-end">
-            <Button size="lg" onClick={handleSubmit}>
+            <Button size="lg" onClick={handleSaveFolder}>
               {isLoadingFolder ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

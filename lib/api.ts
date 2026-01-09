@@ -284,6 +284,7 @@ export async function fetchCommandType() {
 export async function searchProducts(
   site_id: string,
   query: string
+  //@ts-ignore
 ): Promise<ApiResponse<Product[]>> {
   try {
     console.log("Query", encodeURIComponent(query));
@@ -901,6 +902,38 @@ export async function saveFolderConfig(folderPath: string) {
           : "Une erreur inconnue est survenue",
     });
     console.error("[v0] Error saving folder configuration:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+      data: null,
+    };
+  }
+}
+
+export async function getFolderConfig() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/settings/get/folder`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Récupération du dossier a échoué");
+    const data = await response.json();
+    toast.success("Dossier récupéré avec succès");
+    return { success: true, data };
+  } catch (error) {
+    toast.error("La récupération du dossier a échoué", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+    });
+    console.error("[v0] Error getting folder configuration:", error);
     return {
       success: false,
       error:

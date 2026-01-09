@@ -13,7 +13,12 @@ import {
 } from "@/components/ui/card";
 import { Folder, Mail, Loader2 } from "lucide-react";
 import usePOPServerStore from "@/stores/pop-server";
-import { getSettingsPOP, saveFolderConfig, saveSettingsPOP } from "@/lib/api";
+import {
+  getFolderConfig,
+  getSettingsPOP,
+  saveFolderConfig,
+  saveSettingsPOP,
+} from "@/lib/api";
 
 declare global {
   interface Window {
@@ -31,6 +36,7 @@ export function SettingsForm() {
     const loadSettingPOP = async () => {
       // Here you can implement loading existing settings if needed
       const response = await getSettingsPOP();
+      const reponse_path = await getFolderConfig();
       setSelectedPOPServer(response.data);
     };
     loadSettingPOP();

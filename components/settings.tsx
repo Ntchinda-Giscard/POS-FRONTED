@@ -37,6 +37,7 @@ export function SettingsForm() {
       // Here you can implement loading existing settings if needed
       const response = await getSettingsPOP();
       const reponse_path = await getFolderConfig();
+      setFolderPath(reponse_path.data.path);
       setSelectedPOPServer(response.data);
     };
     loadSettingPOP();
@@ -62,7 +63,7 @@ export function SettingsForm() {
       return;
     }
     try {
-      const selectedFolder = await window.electronAPI.selectFolder();
+      const selectedFolder = await window.electronAPI.selectDatabase();
       console.log("Selected folder", selectedFolder);
       if (selectedFolder) {
         setFolderPath(selectedFolder);

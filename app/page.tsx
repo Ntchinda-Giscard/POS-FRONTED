@@ -929,8 +929,9 @@ export default function POSApp() {
                     const quantity = productQuantities[product.item_code] || 1;
                     const showControls =
                       showQuantityControls[product.item_code];
-                    const productImage = product?.image?.toString();
-                    const src = `data:image/jpeg;base64,${productImage}`;
+                    // const productImage = product?.image?.toString();
+                    console.log(` product image ${product?.image?.toString()}`)
+                    const src = `data:image/jpeg;base64,${product?.image?.toString()}`;
 
                     return (
                       <Card

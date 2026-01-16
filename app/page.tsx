@@ -39,6 +39,7 @@ import {
   Calculator,
   Repeat,
   Folder,
+  Loader,
 } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -612,10 +613,11 @@ export default function POSApp() {
     }
   };
 
+
   useEffect(() => {
     const loadInitialData = async () => {
       console.log("[v0] Loading initial data from API...");
-
+      setIsLoadingProducts(true);
       const productsResponse = await fetchProducts(siteExoeditionCode);
       if (productsResponse.success && productsResponse.data) {
         setProducts(productsResponse.data);
@@ -922,7 +924,9 @@ export default function POSApp() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+
+              {isLoadingProducts ? <Loader speed={20} /> :
+                <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredProducts.map((product, index) => {
                     const stockStatus = getStockStatus(product.stock);
@@ -1100,7 +1104,7 @@ export default function POSApp() {
                     </p>
                   </div>
                 )}
-              </CardContent>
+              </CardContent>}
             </Card>
           </div>
         );

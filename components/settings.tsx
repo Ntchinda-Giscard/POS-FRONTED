@@ -92,13 +92,13 @@ export function SettingsForm() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="w-5 h-5 mr-2" />
-            Paramètres POP
+            Paramètres IMAP
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Serveur POP</Label>
+              <Label>Serveur IMAP</Label>
               <Input
                 value={selectedPOPServer.popServer}
                 onChange={(e) =>

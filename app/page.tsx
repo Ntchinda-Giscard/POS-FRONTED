@@ -925,7 +925,9 @@ export default function POSApp() {
                 </div>
               </CardHeader>
 
-              {isLoadingProducts ? <Loader speed={20} /> :
+              {isLoadingProducts ? <div className="flex-1 justify-center items-center">
+                <Loader speed={20} size={20} />
+              </div>  :
                 <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredProducts.map((product, index) => {

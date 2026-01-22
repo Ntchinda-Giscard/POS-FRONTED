@@ -94,6 +94,7 @@ import { Label } from "@/components/ui/label";
 import { ReportsContent } from "@/components/reports";
 import { SettingsForm } from "@/components/settings";
 import { ReceiptsContent } from "@/components/receipts";
+import Livraison2 from "@/components/livraison2";
 
 const tabs = [
   {
@@ -753,7 +754,8 @@ export default function POSApp() {
   const renderCurrentView = () => {
     switch (currentView) {
       case "livraison":
-        return <Livraison />;
+      // return <Livraison />;
+        return <Livraison2 />
       case "history":
         return (
           <div className="space-y-6">

@@ -752,12 +752,8 @@ export default function POSApp() {
 
   const renderCurrentView = () => {
     switch (currentView) {
-      case "Livraison":
-        return (
-          <div className="space-y-6">
-            <div> Livraison </div>
-          </div>
-        );
+      case "livraison":
+        return <Livraison />;
       case "history":
         return (
           <div className="space-y-6">

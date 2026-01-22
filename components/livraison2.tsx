@@ -20,8 +20,8 @@ export default function LivraisonPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Gestion des Livraisons</h1>
-            <p className="text-muted-foreground mt-1">Gérez vos livraisons et commandes</p>
+            {/* <h1 className="text-3xl font-bold text-foreground">Gestion des Livraisons</h1>
+            <p className="text-muted-foreground mt-1">Gérez vos livraisons et commandes</p> */}
           </div>
           <Button 
             onClick={() => setIsModalOpen(true)}

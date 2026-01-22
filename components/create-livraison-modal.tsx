@@ -114,8 +114,8 @@ export function CreateLivraisonModal({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose}  >
+      <DialogContent className="min-w-[600px] max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Créer une nouvelle livraison</DialogTitle>
           <DialogDescription>

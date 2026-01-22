@@ -752,25 +752,10 @@ export default function POSApp() {
 
   const renderCurrentView = () => {
     switch (currentView) {
-      case "dashboard":
+      case "Livraison":
         return (
           <div className="space-y-6">
-            <Card className="transition-all duration-200 hover:shadow-lg">
-              <CardHeader>
-                <CardTitle>Sales Dashboard</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    Dashboard Coming Soon
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Advanced analytics and reporting features
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div> Livraison </div>
           </div>
         );
       case "history":
@@ -1131,7 +1116,7 @@ export default function POSApp() {
               <h1 className="text-3xl font-bold text-foreground">
                 {currentView === "pos"
                   ? "Point de vente"
-                  : currentView === "dashboard"
+                  : currentView === "livraison"
                   ? "Tableau de bord des ventes"
                   : currentView === "history"
                   ? "Historique des transactions"
@@ -1196,7 +1181,7 @@ export default function POSApp() {
               <p className="text-muted-foreground">
                 {currentView === "pos"
                   ? "Point de vente"
-                  : currentView === "dashboard"
+                  : currentView === "livraison"
                   ? "Tableau de bord des ventes"
                   : currentView === "history"
                   ? "Historique des transactions"

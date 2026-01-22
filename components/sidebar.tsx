@@ -44,7 +44,7 @@ export function Sidebar({
 
   const menuItems = [
     { id: "pos", label: "Point of Sale", icon: Home, badge: null },
-    { id: "dashboard", label: "Dashboard", icon: BarChart3, badge: null },
+    { id: "livraison", label: "Livraison", icon: BarChart3, badge: null },
     {
       id: "history",
       label: "Transaction History",

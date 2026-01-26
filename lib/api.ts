@@ -106,13 +106,29 @@ export async function fetchProducts(
       },
     });
     console.error(error);
-    console.warn("[v0] API not available, using mock data for products");
     return {
       success: true,
       data: mockProducts,
       isFromMock: true,
       error: "API not available - using local data",
     };
+  }
+}
+
+export async function fetchProductImage(item_code: string) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/articles/${item_code}/image`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) throw new Error("Failed to fetch product image");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    console.warn(`[v0] Error fetching image for ${item_code}`, error);
+    return { success: false, data: null };
   }
 }
 

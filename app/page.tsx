@@ -95,6 +95,8 @@ import { ReportsContent } from "@/components/reports";
 import { SettingsForm } from "@/components/settings";
 import { ReceiptsContent } from "@/components/receipts";
 import Livraison2 from "@/components/livraison2";
+import { ProductImage } from "@/components/product-image";
+
 
 const tabs = [
   {
@@ -918,9 +920,6 @@ export default function POSApp() {
                     const quantity = productQuantities[product.item_code] || 1;
                     const showControls =
                       showQuantityControls[product.item_code];
-                    // const productImage = product?.image?.toString();
-                    console.log(` product image ${product?.image}`)
-                    const src = `data:image/jpeg;base64,${product?.image}`;
 
                     return (
                       <Card
@@ -937,15 +936,12 @@ export default function POSApp() {
                       >
                         <CardContent className="p-4">
                           <div className="relative mb-3">
-                            <Image
-                              src={
-                                src ||
-                                "/placeholder.svg?height=120&width=120&query=product"
-                              }
+                            <ProductImage
+                              item_code={product.item_code}
                               alt={product.describtion}
                               width={120}
                               height={120}
-                              className="w-full h-50 object-fill rounded-md bg-muted transition-transform duration-200 hover:scale-105"
+                              className="w-full h-50 object-fill rounded-md transition-transform duration-200 hover:scale-105"
                             />
                             {product.stock <= 10 && product.stock > 0 && (
                               <div className="absolute top-2 right-2 animate-pulse">
@@ -1251,8 +1247,6 @@ export default function POSApp() {
                         //   item.unitpriceHT === 0 || item.totalpriceHT === 0;
                         const currencySymbol =
                           getCurrencyByCode(selectedCurrencyCode)?.symbol;
-                        const productImage = item?.product.image?.toString();
-                        const src = `data:image/jpeg;base64,${productImage}`;
 
                         return (
                           <div
@@ -1261,11 +1255,8 @@ export default function POSApp() {
                             style={{ animationDelay: `${index * 100}ms` }}
                           >
                             <div className="relative">
-                              <Image
-                                src={
-                                  src ||
-                                  "/placeholder.svg?height=40&width=40&query=product"
-                                }
+                              <ProductImage
+                                item_code={item.item_code}
                                 alt={item.product.describtion}
                                 width={40}
                                 height={40}

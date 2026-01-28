@@ -50,9 +50,10 @@ export function LivraisonList() {
             commande_livre: item.commande_livre,
             site_vente: item.site_vente,
             type: item.type,
-            statut: (['pending', 'in-transit', 'delivered'].includes(item.statut) 
-              ? item.statut 
-              : 'pending') as 'pending' | 'in-transit' | 'delivered'
+            statut: item.statut
+              // (['pending', 'in-transit', 'delivered'].includes(item.statut) 
+              // ? item.statut 
+              // : 'pending') as 'pending' | 'in-transit' | 'delivered'
           }))
           setLivraisons(mappedData)
         }

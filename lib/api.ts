@@ -960,3 +960,36 @@ export async function getFolderConfig() {
     };
   }
 }
+
+
+export async function fetchLivraison() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/livraison/all`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Récupération de la livraison a échoué");
+    const data = await response.json();
+    toast.success("Livraison récupérée avec succès");
+    return { success: true, data };
+  } catch (error) {
+    toast.error("La récupération de la livraison a échoué", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+    });
+    console.error("[v0] Error fetching delivery:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+      data: null,
+    };
+  }
+}

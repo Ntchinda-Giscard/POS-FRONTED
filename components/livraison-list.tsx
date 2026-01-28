@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { fetchLivraison } from '@/lib/api'
 
 interface Livraison {
   id: string
@@ -48,7 +49,7 @@ export function LivraisonList() {
     const fetchLivraisons = async () => {
       try {
         // TODO: Replace with actual API call to your backend
-        // const response = await fetch('/api/livraisons')
+        const response = fetchLivraison()
         // const data = await response.json()
         
         // Mock data for now

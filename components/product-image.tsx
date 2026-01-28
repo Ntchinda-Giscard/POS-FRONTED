@@ -60,7 +60,7 @@ export function ProductImage({ item_code, alt, className, width = 120, height = 
         className={`bg-muted flex items-center justify-center text-muted-foreground rounded-md ${className}`}
         style={{ width: "100%", height: "100%", minHeight: height }}
       >
-        <ImageOff className="h-8 w-8 opacity-50" />
+        <ImageOff className="h-10 w-8 opacity-50" />
       </div>
     )
   }

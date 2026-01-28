@@ -1000,7 +1000,7 @@ export async function fetchLivraison(): Promise<ApiResponse<LivraisonHeader[]> |
         error instanceof Error
           ? error.message
           : "Une erreur inconnue est survenue",
-      data: null,
+      data: undefined,
     };
   }
 }

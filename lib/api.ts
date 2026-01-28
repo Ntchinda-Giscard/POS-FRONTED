@@ -962,7 +962,18 @@ export async function getFolderConfig() {
 }
 
 
-export async function fetchLivraison() {
+type LivraisonHeader = {
+  id: string
+  type: string
+  date_expedition: string
+  date_livraison: string
+  client_livre: string
+  commande_livre: string
+  site_vente: string
+  statut: string
+}
+
+export async function fetchLivraison(): Promise<ApiResponse<LivraisonHeader[]> | null> {
   try {
     const response = await fetch(`${API_BASE_URL}/livraison/all`, {
       method: "GET",

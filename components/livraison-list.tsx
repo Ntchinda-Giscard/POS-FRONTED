@@ -48,136 +48,23 @@ export function LivraisonList() {
   useEffect(() => {
     const fetchLivraisons = async () => {
       try {
-        // TODO: Replace with actual API call to your backend
-        const response = fetchLivraison()
-        // const data = await response.json()
+        const response = await fetchLivraison()
         
-        // Mock data for now
-        const mockData: Livraison[] = [
-          {
-            id: '1',
-            dateExpedition: '2025-01-15',
-            dateLivraison: '2025-01-18',
-            clientLivree: 'Entreprise A',
-            commandeLivree: 'CMD-001',
-            siteExpedition: 'Site Paris',
-            type: 'Standard',
-            status: 'delivered',
-          },
-          {
-            id: '2',
-            dateExpedition: '2025-01-16',
-            dateLivraison: '2025-01-19',
-            clientLivree: 'Entreprise B',
-            commandeLivree: 'CMD-002',
-            siteExpedition: 'Site Lyon',
-            type: 'Express',
-            status: 'in-transit',
-          },
-          {
-            id: '3',
-            dateExpedition: '2025-01-17',
-            dateLivraison: '2025-01-20',
-            clientLivree: 'Entreprise C',
-            commandeLivree: 'CMD-003',
-            siteExpedition: 'Site Marseille',
-            type: 'Standard',
-            status: 'pending',
-          },
-          {
-            id: '4',
-            dateExpedition: '2025-01-18',
-            dateLivraison: '2025-01-21',
-            clientLivree: 'Entreprise D',
-            commandeLivree: 'CMD-004',
-            siteExpedition: 'Site Paris',
-            type: 'Express',
-            status: 'delivered',
-          },
-          {
-            id: '5',
-            dateExpedition: '2025-01-19',
-            dateLivraison: '2025-01-22',
-            clientLivree: 'Entreprise E',
-            commandeLivree: 'CMD-005',
-            siteExpedition: 'Site Lyon',
-            type: 'Standard',
-            status: 'in-transit',
-          },
-          {
-            id: '6',
-            dateExpedition: '2025-01-20',
-            dateLivraison: '2025-01-23',
-            clientLivree: 'Entreprise F',
-            commandeLivree: 'CMD-006',
-            siteExpedition: 'Site Marseille',
-            type: 'International',
-            status: 'pending',
-          },
-          {
-            id: '7',
-            dateExpedition: '2025-01-21',
-            dateLivraison: '2025-01-24',
-            clientLivree: 'Entreprise A',
-            commandeLivree: 'CMD-007',
-            siteExpedition: 'Site Toulouse',
-            type: 'Express',
-            status: 'delivered',
-          },
-          {
-            id: '8',
-            dateExpedition: '2025-01-22',
-            dateLivraison: '2025-01-25',
-            clientLivree: 'Entreprise B',
-            commandeLivree: 'CMD-008',
-            siteExpedition: 'Site Paris',
-            type: 'Standard',
-            status: 'in-transit',
-          },
-          {
-            id: '9',
-            dateExpedition: '2025-01-23',
-            dateLivraison: '2025-01-26',
-            clientLivree: 'Entreprise C',
-            commandeLivree: 'CMD-009',
-            siteExpedition: 'Site Lyon',
-            type: 'Express',
-            status: 'pending',
-          },
-          {
-            id: '10',
-            dateExpedition: '2025-01-24',
-            dateLivraison: '2025-01-27',
-            clientLivree: 'Entreprise D',
-            commandeLivree: 'CMD-010',
-            siteExpedition: 'Site Marseille',
-            type: 'Standard',
-            status: 'delivered',
-          },
-          {
-            id: '11',
-            dateExpedition: '2025-01-25',
-            dateLivraison: '2025-01-28',
-            clientLivree: 'Entreprise E',
-            commandeLivree: 'CMD-011',
-            siteExpedition: 'Site Toulouse',
-            type: 'International',
-            status: 'in-transit',
-          },
-          {
-            id: '12',
-            dateExpedition: '2025-01-26',
-            dateLivraison: '2025-01-29',
-            clientLivree: 'Entreprise F',
-            commandeLivree: 'CMD-012',
-            siteExpedition: 'Site Paris',
-            type: 'Standard',
-            status: 'pending',
-          },
-        ]
-
-        // setLivraisons(mockData)
-        setLivraisons(response)
+        if (response && response.success && response.data) {
+          const mappedData: Livraison[] = response.data.map((item) => ({
+            id: item.id,
+            dateExpedition: item.date_expedition,
+            dateLivraison: item.date_livraison,
+            clientLivree: item.client_livre,
+            commandeLivree: item.commande_livre,
+            siteExpedition: item.site_vente,
+            type: item.type,
+            status: (['pending', 'in-transit', 'delivered'].includes(item.statut) 
+              ? item.statut 
+              : 'pending') as 'pending' | 'in-transit' | 'delivered'
+          }))
+          setLivraisons(mappedData)
+        }
       } catch (error) {
         console.error('Error fetching livraisons:', error)
       } finally {

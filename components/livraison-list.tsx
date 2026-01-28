@@ -26,11 +26,12 @@ import { fetchLivraison, LivraisonHeader } from '@/lib/api'
 
 
 
+import { useLivraisonDataStore } from '@/stores/livraison-data-store'
+
 const ITEMS_PER_PAGE = 10
 
 export function LivraisonList() {
-  const [livraisons, setLivraisons] = useState<LivraisonHeader[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { livraisons, setLivraisons, isLoading, setIsLoading } = useLivraisonDataStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')

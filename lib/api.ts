@@ -962,7 +962,7 @@ export async function getFolderConfig() {
 }
 
 
-type LivraisonHeader = {
+export type LivraisonHeader = {
   id: string
   type: string
   date_expedition: string

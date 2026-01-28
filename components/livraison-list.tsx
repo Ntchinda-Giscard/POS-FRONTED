@@ -22,23 +22,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
-import { fetchLivraison } from '@/lib/api'
+import { fetchLivraison, LivraisonHeader } from '@/lib/api'
 
-interface Livraison {
-  id: string
-  dateExpedition: string
-  dateLivraison: string
-  clientLivree: string
-  commandeLivree: string
-  siteExpedition: string
-  type: string
-  status: 'pending' | 'in-transit' | 'delivered'
-}
+
 
 const ITEMS_PER_PAGE = 10
 
 export function LivraisonList() {
-  const [livraisons, setLivraisons] = useState<Livraison[]>([])
+  const [livraisons, setLivraisons] = useState<LivraisonHeader[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -51,15 +42,15 @@ export function LivraisonList() {
         const response = await fetchLivraison()
         
         if (response && response.success && response.data) {
-          const mappedData: Livraison[] = response.data.map((item) => ({
+          const mappedData: LivraisonHeader[] = response.data.map((item) => ({
             id: item.id,
-            dateExpedition: item.date_expedition,
-            dateLivraison: item.date_livraison,
-            clientLivree: item.client_livre,
-            commandeLivree: item.commande_livre,
-            siteExpedition: item.site_vente,
+            date_expedition: item.date_expedition,
+            date_livraison: item.date_livraison,
+            client_livre: item.client_livre,
+            commande_livre: item.commande_livre,
+            site_vente: item.site_vente,
             type: item.type,
-            status: (['pending', 'in-transit', 'delivered'].includes(item.statut) 
+            statut: (['pending', 'in-transit', 'delivered'].includes(item.statut) 
               ? item.statut 
               : 'pending') as 'pending' | 'in-transit' | 'delivered'
           }))
@@ -93,12 +84,12 @@ export function LivraisonList() {
   const filteredLivraisons = livraisons.filter((livraison) => {
     const searchLower = searchQuery.toLowerCase()
     const matchesSearch =
-      livraison.commandeLivree.toLowerCase().includes(searchLower) ||
-      livraison.clientLivree.toLowerCase().includes(searchLower) ||
-      livraison.siteExpedition.toLowerCase().includes(searchLower)
+      livraison.commande_livre.toLowerCase().includes(searchLower) ||
+      livraison.client_livre.toLowerCase().includes(searchLower) ||
+      livraison.site_vente.toLowerCase().includes(searchLower)
 
     const matchesStatus =
-      filterStatus === 'all' || livraison.status === filterStatus
+      filterStatus === 'all' || livraison.statut === filterStatus
     const matchesType = filterType === 'all' || livraison.type === filterType
 
     return matchesSearch && matchesStatus && matchesType
@@ -207,15 +198,15 @@ export function LivraisonList() {
           {paginatedLivraisons.length > 0 ? (
             paginatedLivraisons.map((livraison) => (
               <TableRow key={livraison.id} className="border-border hover:bg-muted/50">
-                <TableCell className="font-medium">{formatDate(livraison.dateExpedition)}</TableCell>
-                <TableCell>{formatDate(livraison.dateLivraison)}</TableCell>
-                <TableCell>{livraison.clientLivree}</TableCell>
-                <TableCell>{livraison.commandeLivree}</TableCell>
-                <TableCell>{livraison.siteExpedition}</TableCell>
+                <TableCell className="font-medium">{formatDate(livraison.date_expedition)}</TableCell>
+                <TableCell>{formatDate(livraison.date_livraison)}</TableCell>
+                <TableCell>{livraison.client_livre}</TableCell>
+                <TableCell>{livraison.commande_livre}</TableCell>
+                <TableCell>{livraison.site_vente}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{livraison.type}</Badge>
                 </TableCell>
-                <TableCell>{getStatusBadge(livraison.status)}</TableCell>
+                <TableCell>{getStatusBadge(livraison.statut)}</TableCell>
               </TableRow>
             ))
           ) : (

@@ -1004,3 +1004,40 @@ export async function fetchLivraison(): Promise<ApiResponse<LivraisonHeader[]> |
     };
   }
 }
+
+export type LivraisonType = {
+  code: string
+  label?: string
+}
+
+export async function fetchLivraisonTypes(): Promise<ApiResponse<LivraisonType[]> | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/livraison/type`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Récupération des types de livraison a échoué");
+    const data = await response.json();
+    toast.success("Types de livraison récupérés avec succès");
+    return { success: true, data };
+  } catch (error) {
+    toast.error("La récupération des types de livraison a échoué", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+    });
+    console.error("[v0] Error fetching livraison types:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+      data: undefined,
+    };
+  }
+}

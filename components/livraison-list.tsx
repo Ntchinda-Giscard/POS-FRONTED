@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
-import { fetchLivraison, LivraisonHeader } from '@/lib/api'
+import { fetchLivraison, LivraisonHeader, fetchLivraisonTypes } from '@/lib/api'
 
 
 
@@ -31,7 +31,7 @@ import { useLivraisonDataStore } from '@/stores/livraison-data-store'
 const ITEMS_PER_PAGE = 10
 
 export function LivraisonList() {
-  const { livraisons, setLivraisons, isLoading, setIsLoading } = useLivraisonDataStore()
+  const { livraisons, setLivraisons, livraisonTypes, setLivraisonTypes, isLoading, setIsLoading } = useLivraisonDataStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
@@ -65,7 +65,23 @@ export function LivraisonList() {
       }
     }
 
+    const fetchTypes = async () => {
+      try {
+        const response = await fetchLivraisonTypes()
+        
+        if (response && response.success && response.data) {
+          setLivraisonTypes(response.data)
+        }
+      } catch (error) {
+        console.error('Error fetching livraison types:', error)
+      }
+    }
+
     fetchLivraisons()
+    // Only fetch types if they haven't been loaded yet
+    if (livraisonTypes.length === 0) {
+      fetchTypes()
+    }
   }, [])
 
   const getStatusBadge = (status: string) => {
@@ -171,9 +187,11 @@ export function LivraisonList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les types</SelectItem>
-                <SelectItem value="Standard">Standard</SelectItem>
-                <SelectItem value="Express">Express</SelectItem>
-                <SelectItem value="International">International</SelectItem>
+                {livraisonTypes.map((type) => (
+                  <SelectItem key={type.code} value={type.code}>
+                    {type.label || type.code}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

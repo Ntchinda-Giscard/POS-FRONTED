@@ -156,9 +156,8 @@ export function LivraisonList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="pending">En attente</SelectItem>
-                <SelectItem value="in-transit">En transit</SelectItem>
-                <SelectItem value="delivered">Livrée</SelectItem>
+                <SelectItem value="2">Livrée</SelectItem>
+                <SelectItem value="1">En attente</SelectItem>
               </SelectContent>
             </Select>
           </div>

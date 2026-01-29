@@ -2,7 +2,8 @@
 
 import React from "react"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { fetchLivraisonTypes } from '@/lib/api'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { OrderSelection } from './order-selection'
 import { Loader2 } from 'lucide-react'
+import { useLivraisonDataStore } from '@/stores/livraison-data-store'
 
 interface CreateLivraisonModalProps {
   isOpen: boolean
@@ -35,6 +37,7 @@ export function CreateLivraisonModal({
   onClose,
   onSuccess,
 }: CreateLivraisonModalProps) {
+  const { livraisonTypes, setLivraisonTypes } = useLivraisonDataStore()
   const [isLoading, setIsLoading] = useState(false)
   const [siteExpedition, setSiteExpedition] = useState('')
   const [type, setType] = useState('')
@@ -46,6 +49,24 @@ export function CreateLivraisonModal({
   const [selectedArticles, setSelectedArticles] = useState<
     Array<{ articleId: string; quantity: number; totalQuantity: number }>
   >([])
+
+  useEffect(() => {
+    const loadTypes = async () => {
+      if (livraisonTypes.length === 0) {
+        try {
+          const response = await fetchLivraisonTypes()
+          if (response && response.success && response.data) {
+            setLivraisonTypes(response.data)
+          }
+        } catch (error) {
+          console.error("Failed to load livraison types", error)
+        }
+      }
+    }
+    if (isOpen) {
+      loadTypes()
+    }
+  }, [isOpen, livraisonTypes.length, setLivraisonTypes])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -150,10 +171,11 @@ export function CreateLivraisonModal({
                     <SelectValue placeholder="Sélectionnez un type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="express">Express</SelectItem>
-                    <SelectItem value="overnight">Overnight</SelectItem>
-                    <SelectItem value="international">International</SelectItem>
+                    {livraisonTypes.map((item) => (
+                      <SelectItem key={item.code} value={item.code}>
+                        {item.label || item.code}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

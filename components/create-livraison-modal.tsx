@@ -3,7 +3,8 @@
 import React from "react"
 
 import { useState, useEffect } from 'react'
-import { fetchLivraisonTypes } from '@/lib/api'
+import { fetchLivraisonTypes, fetchAdresseExpedition, fetchClients } from '@/lib/api'
+import useSiteVenteStore from "@/stores/site-store"
 import {
   Dialog,
   DialogContent,
@@ -32,11 +33,23 @@ interface CreateLivraisonModalProps {
   onSuccess: () => void
 }
 
+interface AddressExpedition {
+  code: string;
+  description: string;
+  leg_comp: string;
+}
+
+interface Client {
+  code: string;
+  name: string;
+}
+
 export function CreateLivraisonModal({
   isOpen,
   onClose,
   onSuccess,
 }: CreateLivraisonModalProps) {
+  const { selectedSite } = useSiteVenteStore()
   const { livraisonTypes, setLivraisonTypes } = useLivraisonDataStore()
   const [isLoading, setIsLoading] = useState(false)
   const [siteExpedition, setSiteExpedition] = useState('')
@@ -49,6 +62,8 @@ export function CreateLivraisonModal({
   const [selectedArticles, setSelectedArticles] = useState<
     Array<{ articleId: string; quantity: number; totalQuantity: number }>
   >([])
+  const [expeditionAddresses, setExpeditionAddresses] = useState<AddressExpedition[]>([])
+  const [clients, setClients] = useState<Client[]>([])
 
   useEffect(() => {
     const loadTypes = async () => {
@@ -67,6 +82,42 @@ export function CreateLivraisonModal({
       loadTypes()
     }
   }, [isOpen, livraisonTypes.length, setLivraisonTypes])
+
+  useEffect(() => {
+    const loadExpeditionAddresses = async () => {
+      if (selectedSite?.leg_comp) {
+        try {
+          const response = await fetchAdresseExpedition(selectedSite.leg_comp)
+          if (response && response.success && response.data) {
+            setExpeditionAddresses(response.data)
+          }
+        } catch (error) {
+          console.error("Failed to load expedition addresses", error)
+        }
+      }
+    }
+
+    if (isOpen) {
+      loadExpeditionAddresses()
+    }
+  }, [isOpen, selectedSite])
+
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const response = await fetchClients()
+        if (response && response.success && response.data) {
+          setClients(response.data)
+        }
+      } catch (error) {
+        console.error("Failed to load clients", error)
+      }
+    }
+
+    if (isOpen) {
+      loadClients()
+    }
+  }, [isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -156,10 +207,11 @@ export function CreateLivraisonModal({
                     <SelectValue placeholder="Sélectionnez un site" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="site-paris">Site Paris</SelectItem>
-                    <SelectItem value="site-lyon">Site Lyon</SelectItem>
-                    <SelectItem value="site-marseille">Site Marseille</SelectItem>
-                    <SelectItem value="site-toulouse">Site Toulouse</SelectItem>
+                    {expeditionAddresses.map((addr) => (
+                      <SelectItem key={addr.code} value={addr.code}>
+                        {addr.code} - {addr.description}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -187,10 +239,11 @@ export function CreateLivraisonModal({
                     <SelectValue placeholder="Sélectionnez un client" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="entreprise-a">Entreprise A</SelectItem>
-                    <SelectItem value="entreprise-b">Entreprise B</SelectItem>
-                    <SelectItem value="entreprise-c">Entreprise C</SelectItem>
-                    <SelectItem value="entreprise-d">Entreprise D</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.code} value={client.code}>
+                        {client.name || client.code}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

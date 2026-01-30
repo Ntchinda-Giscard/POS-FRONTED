@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { fetchCommandes, fetchCommandeQuantite } from '@/lib/api'
 import {
   Select,
   SelectContent,
@@ -29,6 +30,7 @@ interface Order {
   orderNumber: string
   client: string
   articles: Article[]
+  loaded?: boolean
 }
 
 interface SelectedArticle {
@@ -60,42 +62,17 @@ export function OrderSelection({
     const fetchOrders = async () => {
       setIsLoading(true)
       try {
-        // TODO: Replace with actual API call to your backend
-        // const response = await fetch('/api/orders')
-        // const data = await response.json()
-
-        // Mock data for now
-        const mockOrders: Order[] = [
-          {
-            id: 'order-1',
-            orderNumber: 'CMD-001',
-            client: 'Entreprise A',
-            articles: [
-              { id: 'art-1', name: 'Produit A', sku: 'SKU-001', quantity: 100, unit: 'pcs' },
-              { id: 'art-2', name: 'Produit B', sku: 'SKU-002', quantity: 50, unit: 'pcs' },
-              { id: 'art-3', name: 'Produit C', sku: 'SKU-003', quantity: 200, unit: 'pcs' },
-            ],
-          },
-          {
-            id: 'order-2',
-            orderNumber: 'CMD-002',
-            client: 'Entreprise B',
-            articles: [
-              { id: 'art-4', name: 'Produit D', sku: 'SKU-004', quantity: 75, unit: 'pcs' },
-              { id: 'art-5', name: 'Produit E', sku: 'SKU-005', quantity: 150, unit: 'pcs' },
-            ],
-          },
-          {
-            id: 'order-3',
-            orderNumber: 'CMD-003',
-            client: 'Entreprise C',
-            articles: [
-              { id: 'art-6', name: 'Produit F', sku: 'SKU-006', quantity: 60, unit: 'pcs' },
-            ],
-          },
-        ]
-
-        setOrders(mockOrders)
+        const response = await fetchCommandes()
+        if (response.success && response.data) {
+          const mappedOrders: Order[] = response.data.map((cmd) => ({
+            id: cmd.code,
+            orderNumber: cmd.code,
+            client: cmd.client_comm || cmd.client_livre,
+            articles: [],
+            loaded: false
+          }))
+          setOrders(mappedOrders)
+        }
       } catch (error) {
         console.error('Error fetching orders:', error)
       } finally {
@@ -109,8 +86,34 @@ export function OrderSelection({
   useEffect(() => {
     if (selectedOrderId) {
       const order = orders.find((o) => o.id === selectedOrderId)
-      setCurrentOrder(order || null)
-      if (!order) {
+      if (order) {
+         if (!order.loaded) {
+             // Fetch details
+             fetchCommandeQuantite(order.id).then(res => {
+                 if (res.success && res.data) {
+                     const articles: Article[] = res.data.map(q => ({
+                         id: q.code,
+                         name: q.code, // We don't have name yet
+                         sku: q.code,
+                         quantity: q.quantite,
+                         unit: 'pcs'
+                     }))
+                     
+                     setOrders(prev => prev.map(o => o.id === order.id ? { ...o, articles, loaded: true } : o))
+                 }
+             })
+         }
+         setCurrentOrder(order)
+      } else {
+         setCurrentOrder(null)
+      }
+      
+      // Only reset selection if the order actually changed to a new one (not just update)
+      // This part is tricky because we trigger effect on 'orders' update.
+      // We should check if selectedOrderId is DIFFERENT from previous or if we just want to load current order.
+      // Simpler: if order matches currentOrder?.id, don't reset.
+      
+      if (!order || (currentOrder && currentOrder.id !== selectedOrderId)) {
         onArticlesChange([])
         setSelectedAll(false)
         setQuantityInputs({})

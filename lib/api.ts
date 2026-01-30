@@ -33,6 +33,18 @@ type SettingsInput = {
   password: string;
 };
 
+export type CommandeLivraison = {
+  code: string;
+  client_livre: string;
+  client_comm: string;
+};
+
+export type CommandeQuantite = {
+  code: string;
+  quantite: number;
+  quantite_total: number;
+};
+
 type CurrencyType = {
   code: string;
   symbol?: string;
@@ -270,6 +282,40 @@ export async function fetchAdresseExpedition(legacy_comp: string | undefined) {
     console.warn(
       "[v0] API not available, using mock data for delivery addresses"
     );
+  }
+}
+
+export async function fetchCommandes(): Promise<ApiResponse<CommandeLivraison[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/livraison/commande`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch commandes");
+      const data = await response.json();
+      return { success: true, data };
+  } catch (error) {
+     console.error(error);
+     return { success: false, data: [] };
+  }
+}
+
+export async function fetchCommandeQuantite(commande_number: string): Promise<ApiResponse<CommandeQuantite[]>> {
+  try {
+     const response = await fetch(`${API_BASE_URL}/livraison/commande/quantite?commande_number=${commande_number}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch commande quantite");
+      const data = await response.json();
+      return { success: true, data };
+  } catch (error) {
+     console.error(error);
+     return { success: false, data: [] };
   }
 }
 

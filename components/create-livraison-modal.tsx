@@ -91,6 +91,7 @@ export function CreateLivraisonModal({
         try {
           const response = await fetchAdresseExpedition(selectedSite.leg_comp)
           if (response && response.success && response.data) {
+            console.log("response.data", response.data)
             setExpeditionAddresses(response.data)
           }
         } catch (error) {

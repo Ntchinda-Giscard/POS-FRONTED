@@ -41,6 +41,7 @@ export type CommandeLivraison = {
 
 export type CommandeQuantite = {
   code: string;
+  description: string;
   quantite: number;
   quantite_total: number;
 };

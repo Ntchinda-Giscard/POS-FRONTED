@@ -234,18 +234,12 @@ export function CreateLivraisonModal({
 
               <div className="space-y-2">
                 <Label htmlFor="client-livree">Client livré</Label>
-                <Select value={clientLivree} onValueChange={setClientLivree}>
-                  <SelectTrigger id="client-livree">
-                    <SelectValue placeholder="Sélectionnez un client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.code} value={client.code}>
-                        {client.name || client.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="client-livree"
+                  placeholder="Client livré"
+                  value={clientLivree}
+                  onChange={(e) => setClientLivree(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
@@ -289,6 +283,15 @@ export function CreateLivraisonModal({
               <OrderSelection
                 selectedOrderId={selectedOrderId}
                 onOrderChange={setSelectedOrderId}
+                onOrderSelect={(order) => {
+                  if (order) {
+                    setClientLivree(order.client_livre)
+                    setClientFacture(order.client_comm)
+                  } else {
+                    setClientLivree('')
+                    setClientFacture('')
+                  }
+                }}
                 selectedArticles={selectedArticles}
                 onArticlesChange={setSelectedArticles}
               />

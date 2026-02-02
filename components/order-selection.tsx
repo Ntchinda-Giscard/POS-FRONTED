@@ -20,6 +20,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react'
 interface Article {
   id: string
   name: string
+  description?: string
   sku: string
   quantity: number
   unit: string
@@ -29,6 +30,8 @@ interface Order {
   id: string
   orderNumber: string
   client: string
+  client_livre: string
+  client_comm: string
   articles: Article[]
   loaded?: boolean
 }
@@ -42,6 +45,7 @@ interface SelectedArticle {
 interface OrderSelectionProps {
   selectedOrderId: string | null
   onOrderChange: (orderId: string | null) => void
+  onOrderSelect?: (order: Order | null) => void
   selectedArticles: SelectedArticle[]
   onArticlesChange: (articles: SelectedArticle[]) => void
 }
@@ -49,6 +53,7 @@ interface OrderSelectionProps {
 export function OrderSelection({
   selectedOrderId,
   onOrderChange,
+  onOrderSelect,
   selectedArticles,
   onArticlesChange,
 }: OrderSelectionProps) {
@@ -68,6 +73,8 @@ export function OrderSelection({
             id: cmd.code,
             orderNumber: cmd.code,
             client: cmd.client_comm || cmd.client_livre,
+            client_livre: cmd.client_livre,
+            client_comm: cmd.client_comm,
             articles: [],
             loaded: false
           }))
@@ -93,7 +100,8 @@ export function OrderSelection({
                  if (res.success && res.data) {
                      const articles: Article[] = res.data.map(q => ({
                          id: q.code,
-                         name: q.code, // We don't have name yet
+                         name: q.code, 
+                         description: q.description,
                          sku: q.code,
                          quantity: q.quantite,
                          unit: 'pcs'
@@ -128,6 +136,10 @@ export function OrderSelection({
 
   const handleOrderChange = (orderId: string) => {
     onOrderChange(orderId)
+    const order = orders.find(o => o.id === orderId)
+    if (onOrderSelect) {
+      onOrderSelect(order || null)
+    }
   }
 
   const handleAddAllArticles = () => {
@@ -283,7 +295,7 @@ export function OrderSelection({
                     className="flex-1 cursor-pointer text-sm"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{article.name}</span>
+                      <span className="font-medium">{article.description || article.name}</span>
                       <Badge variant="secondary" className="text-xs">
                         {article.sku}
                       </Badge>

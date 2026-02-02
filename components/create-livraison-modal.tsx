@@ -283,7 +283,7 @@ export function CreateLivraisonModal({
                   <SelectContent>
                     {deliveryAddresses.map((addr: any) => (
                       <SelectItem key={addr.code} value={addr.code}>
-                        {addr.code}
+                        {addr.code} - {addr.description}
                       </SelectItem>
                     ))}
                   </SelectContent>

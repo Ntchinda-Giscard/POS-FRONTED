@@ -52,7 +52,7 @@ export function CreateLivraisonModal({
   const { selectedSite } = useSiteVenteStore()
   const { livraisonTypes, setLivraisonTypes } = useLivraisonDataStore()
   const [isLoading, setIsLoading] = useState(false)
-  const [siteExpedition, setSiteExpedition] = useState('')
+  const [siteExpedition, setSiteExpedition] = useState(selectedSite?.code || '')
   const [type, setType] = useState('')
   const [clientLivree, setClientLivree] = useState('')
   const [clientFacture, setClientFacture] = useState('')
@@ -62,7 +62,6 @@ export function CreateLivraisonModal({
   const [selectedArticles, setSelectedArticles] = useState<
     Array<{ articleId: string; quantity: number; totalQuantity: number }>
   >([])
-  const [expeditionAddresses, setExpeditionAddresses] = useState<AddressExpedition[]>([])
   const [deliveryAddresses, setDeliveryAddresses] = useState<any[]>([])
   const [selectedDeliveryAddress, setSelectedDeliveryAddress] = useState('')
   const [clients, setClients] = useState<Client[]>([])
@@ -86,24 +85,10 @@ export function CreateLivraisonModal({
   }, [isOpen, livraisonTypes.length, setLivraisonTypes])
 
   useEffect(() => {
-    const loadExpeditionAddresses = async () => {
-      if (selectedSite?.leg_comp) {
-        try {
-          const response = await fetchAdresseExpedition(selectedSite.leg_comp)
-          if (response && response.success && response.data) {
-            console.log("response.data", response.data)
-            setExpeditionAddresses(response.data)
-          }
-        } catch (error) {
-          console.error("Failed to load expedition addresses", error)
-        }
-      }
+    if (selectedSite) {
+      setSiteExpedition(selectedSite.code)
     }
-
-    if (isOpen) {
-      loadExpeditionAddresses()
-    }
-  }, [isOpen, selectedSite])
+  }, [selectedSite])
 
   useEffect(() => {
     const loadClients = async () => {
@@ -185,7 +170,7 @@ export function CreateLivraisonModal({
       })
 
       // Reset form
-      setSiteExpedition('')
+      setSiteExpedition(selectedSite?.code || '')
       setType('')
       setClientLivree('')
       setClientFacture('')
@@ -206,7 +191,7 @@ export function CreateLivraisonModal({
   }
 
   const handleReset = () => {
-    setSiteExpedition('')
+    setSiteExpedition(selectedSite?.code || '')
     setType('')
     setClientLivree('')
     setClientFacture('')
@@ -235,18 +220,12 @@ export function CreateLivraisonModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="site">Site d'expédition</Label>
-                <Select value={siteExpedition} onValueChange={setSiteExpedition}>
-                  <SelectTrigger id="site">
-                    <SelectValue placeholder="Sélectionnez un site" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {expeditionAddresses.map((addr) => (
-                      <SelectItem key={addr.code} value={addr.code}>
-                        {addr.code} - {addr.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="site"
+                  value={siteExpedition}
+                  readOnly
+                  className="bg-muted"
+                />
               </div>
 
               <div className="space-y-2">

@@ -63,6 +63,8 @@ export function CreateLivraisonModal({
     Array<{ articleId: string; quantity: number; totalQuantity: number }>
   >([])
   const [expeditionAddresses, setExpeditionAddresses] = useState<AddressExpedition[]>([])
+  const [deliveryAddresses, setDeliveryAddresses] = useState<any[]>([])
+  const [selectedDeliveryAddress, setSelectedDeliveryAddress] = useState('')
   const [clients, setClients] = useState<Client[]>([])
 
   useEffect(() => {
@@ -119,6 +121,32 @@ export function CreateLivraisonModal({
     }
   }, [isOpen])
 
+  useEffect(() => {
+    const loadDeliveryAddresses = async () => {
+      if (clientLivree) {
+        try {
+          const { fetchAdresseLivraison } = await import('@/lib/api')
+          const response = await fetchAdresseLivraison(clientLivree)
+          if (response && response.success && response.data) {
+            setDeliveryAddresses(response.data)
+            if (response.data.length > 0) {
+              setSelectedDeliveryAddress(response.data[0].code)
+            } else {
+              setSelectedDeliveryAddress('')
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load delivery addresses", error)
+        }
+      } else {
+        setDeliveryAddresses([])
+        setSelectedDeliveryAddress('')
+      }
+    }
+
+    loadDeliveryAddresses()
+  }, [clientLivree])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -164,6 +192,8 @@ export function CreateLivraisonModal({
       setDateLivraison('')
       setSelectedOrderId(null)
       setSelectedArticles([])
+      setSelectedDeliveryAddress('')
+      setDeliveryAddresses([])
 
       onSuccess()
     } catch (error) {
@@ -183,6 +213,8 @@ export function CreateLivraisonModal({
     setDateLivraison('')
     setSelectedOrderId(null)
     setSelectedArticles([])
+    setSelectedDeliveryAddress('')
+    setDeliveryAddresses([])
   }
 
   return (
@@ -240,6 +272,22 @@ export function CreateLivraisonModal({
                   value={clientLivree}
                   onChange={(e) => setClientLivree(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="delivery-address">Site de livraison</Label>
+                <Select value={selectedDeliveryAddress} onValueChange={setSelectedDeliveryAddress}>
+                  <SelectTrigger id="delivery-address">
+                    <SelectValue placeholder="Sélectionnez une adresse" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deliveryAddresses.map((addr: any) => (
+                      <SelectItem key={addr.code} value={addr.code}>
+                        {addr.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

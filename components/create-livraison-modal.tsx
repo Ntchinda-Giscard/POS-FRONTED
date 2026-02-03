@@ -3,7 +3,7 @@
 import React from "react"
 
 import { useState, useEffect } from 'react'
-import { fetchLivraisonTypes, fetchAdresseExpedition, fetchClients } from '@/lib/api'
+import { fetchLivraisonTypes, fetchAdresseExpedition, fetchClients, createLivraison, type AddLivraisonRequest } from '@/lib/api'
 import useSiteVenteStore from "@/stores/site-store"
 import {
   Dialog,
@@ -135,41 +135,49 @@ export function CreateLivraisonModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate required fields
+    if (!selectedOrderId) {
+      alert('Veuillez sélectionner une commande')
+      return
+    }
+    
+    if (selectedArticles.length === 0) {
+      alert('Veuillez sélectionner au moins un article')
+      return
+    }
+    
     setIsLoading(true)
 
     try {
-      // TODO: Replace with actual API call to your backend
-      // const response = await fetch('/api/livraisons', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     siteExpedition,
-      //     type,
-      //     clientLivree,
-      //     clientFacture,
-      //     dateExpedition,
-      //     dateLivraison,
-      //     orderId: selectedOrderId,
-      //     articles: selectedArticles,
-      //   }),
-      // })
-      // if (!response.ok) throw new Error('Failed to create livraison')
+      // Prepare the request payload
+      const requestPayload: AddLivraisonRequest = {
+        livraison: {
+          id: crypto.randomUUID(),
+          date_expedition: dateExpedition,
+          date_livraison: dateLivraison,
+          client_livre: clientLivree,
+          commande_livre: selectedOrderId,
+          site_vente: siteExpedition,
+          type: type,
+          statut: "0" // Default status
+        },
+        livraison_quantite: selectedArticles.map(article => ({
+          code: article.articleId,
+          quantite: article.quantity,
+          quantite_total: article.totalQuantity,
+          description: "" // Will be looked up from database
+        }))
+      }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Call the API
+      const response = await createLivraison(requestPayload)
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create livraison')
+      }
 
-      console.log('[v0] Livraison created:', {
-        siteExpedition,
-        type,
-        clientLivree,
-        clientFacture,
-        dateExpedition,
-        dateLivraison,
-        orderId: selectedOrderId,
-        articles: selectedArticles,
-      })
-
-      // Reset form
+      // Reset form on success
       setSiteExpedition(selectedSite?.code || '')
       setType('')
       setClientLivree('')

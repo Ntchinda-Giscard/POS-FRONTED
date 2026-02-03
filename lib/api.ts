@@ -833,6 +833,55 @@ export async function createSalseOrder(request: SalesOrder) {
   }
 }
 
+export interface LivraisonHeader {
+  id: string;
+  date_expedition: string;
+  date_livraison: string;
+  client_livre: string;
+  commande_livre: string;
+  site_vente: string;
+  type: string;
+  statut?: string;
+}
+
+export interface AddLivraisonRequest {
+  livraison: LivraisonHeader;
+  livraison_quantite: CommandeQuantite[];
+}
+
+export async function createLivraison(request: AddLivraisonRequest): Promise<ApiResponse<AddLivraisonRequest>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/livraison/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Failed to create livraison");
+    const data = await response.json();
+    toast.success("Livraison créée avec succès");
+    return { success: true, data };
+  } catch (error) {
+    toast.error("Échec de la création de la livraison", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+    });
+    console.error("[v0] Error creating livraison:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+      data: undefined,
+    };
+  }
+}
+
 export async function synchronizeData() {
   // Show the loading toast and store its ID
   const toastId = toast.loading("Synchronizing data...");

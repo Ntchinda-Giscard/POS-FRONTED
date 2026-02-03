@@ -3,19 +3,26 @@
 import { useEffect, useState, useRef } from 'react'
 import { fetchCommandes, fetchCommandeQuantite } from '@/lib/api'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Plus, Trash2 } from 'lucide-react'
+import { Check, ChevronsUpDown, Loader2, Plus, Trash2 } from 'lucide-react'
 
 interface Article {
   id: string
@@ -62,6 +69,7 @@ export function OrderSelection({
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null)
   const [selectedAll, setSelectedAll] = useState(false)
   const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({})
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -242,18 +250,52 @@ export function OrderSelection({
       {/* Order Selection */}
       <div className="space-y-2">
         <Label htmlFor="order-select">Sélectionnez une commande</Label>
-        <Select value={selectedOrderId || ''} onValueChange={handleOrderChange}>
-          <SelectTrigger id="order-select">
-            <SelectValue placeholder="Choisir une commande..." />
-          </SelectTrigger>
-          <SelectContent>
-            {orders.map((order) => (
-              <SelectItem key={order.id} value={order.id}>
-                {order.orderNumber} - {order.client}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between font-normal"
+              id="order-select"
+            >
+              <span className="truncate">
+                {selectedOrderId
+                  ? orders.find((order) => order.id === selectedOrderId)?.orderNumber + " - " + orders.find((order) => order.id === selectedOrderId)?.client
+                  : "Choisir une commande..."}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Rechercher une commande..." />
+              <CommandList>
+                <CommandEmpty>Aucune commande trouvée.</CommandEmpty>
+                <CommandGroup>
+                  {orders.map((order) => (
+                    <CommandItem
+                      key={order.id}
+                      value={`${order.orderNumber} ${order.client}`}
+                      onSelect={() => {
+                        handleOrderChange(order.id)
+                        setOpen(false)
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedOrderId === order.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {order.orderNumber} - {order.client}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Articles List */}

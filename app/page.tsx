@@ -521,6 +521,7 @@ export default function POSApp() {
 
     // Hide all quantity controls
     setShowQuantityControls({});
+    
   };
 
   const processTransaction = async (

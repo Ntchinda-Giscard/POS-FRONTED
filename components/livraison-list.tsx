@@ -88,8 +88,9 @@ export function LivraisonList() {
     const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
       '1': { label: 'En attente', variant: 'outline' },
       '2': { label: 'Livrée', variant: 'default' },
+      'default': { label: 'Inconnu', variant: 'secondary' }
     }
-    const config = statusConfig[status] || statusConfig.pending
+    const config = statusConfig[status] || statusConfig['default']
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 

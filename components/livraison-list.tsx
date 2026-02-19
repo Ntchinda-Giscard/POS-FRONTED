@@ -106,7 +106,7 @@ export function LivraisonList() {
       livraison.site_vente.toLowerCase().includes(searchLower)
 
     const matchesStatus =
-      filterStatus === 'all' || livraison.statut === filterStatus
+      filterStatus === 'all' || livraison.status === filterStatus
     const matchesType = filterType === 'all' || livraison.type === filterType
 
     return matchesSearch && matchesStatus && matchesType
@@ -267,7 +267,7 @@ export function LivraisonList() {
                 <TableCell>
                   <Badge variant="outline">{livraison.type}</Badge>
                 </TableCell>
-                <TableCell>{getStatusBadge(livraison.statut)}</TableCell>
+                <TableCell>{getStatusBadge(livraison.status || 'default')}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button
@@ -276,7 +276,7 @@ export function LivraisonList() {
                       title="Mettre en attente"
                       className="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-50"
                       onClick={() => handleStatusChange(livraison.id, '1')}
-                      disabled={livraison.statut === '1' || livraison.statut === '2'}
+                      disabled={livraison.status === '1' || livraison.status === '2'}
                     >
                       <Clock className="h-4 w-4" />
                     </Button>
@@ -286,7 +286,7 @@ export function LivraisonList() {
                       title="Marquer comme livrée"
                       className="h-8 w-8 text-green-500 hover:text-green-600 hover:bg-green-50"
                       onClick={() => handleStatusChange(livraison.id, '2')}
-                      disabled={livraison.statut === '2'}
+                      disabled={livraison.status === '2'}
                     >
                       <CheckCircle className="h-4 w-4" />
                     </Button>

@@ -160,7 +160,7 @@ export function CreateLivraisonModal({
           commande_livre: selectedOrderId,
           site_vente: siteExpedition,
           type: type,
-          statut: "0" // Default status
+          status: "0" // Default status
         },
         livraison_quantite: selectedArticles.map(article => ({
           code: article.articleId,

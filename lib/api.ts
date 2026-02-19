@@ -841,7 +841,7 @@ export interface LivraisonHeader {
   commande_livre: string;
   site_vente: string;
   type: string;
-  statut?: string;
+  status?: string;
 }
 
 export interface AddLivraisonRequest {
@@ -1129,14 +1129,14 @@ export async function fetchLivraisonTypes(): Promise<ApiResponse<LivraisonType[]
   }
 }
 
-export async function updateLivraisonStatus(id: string, statut: string): Promise<ApiResponse<any>> {
+export async function updateLivraisonStatus(id: string, status: string): Promise<ApiResponse<any>> {
   try {
     const response = await fetch(`${API_BASE_URL}/livraison/status`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ id, statut }),
+      body: JSON.stringify({ id, status }),
       signal: AbortSignal.timeout(10000),
     });
     if (!response.ok) throw new Error("Mise à jour du statut a échoué");

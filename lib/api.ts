@@ -27,10 +27,12 @@ type TaxRegime = {
 };
 
 type SettingsInput = {
-  pop_server: string;
+  popServer: string;
   username: string;
   port: number;
   password: string;
+  addressVente?: string;
+  siteLivraison?: string;
 };
 
 export type CommandeLivraison = {

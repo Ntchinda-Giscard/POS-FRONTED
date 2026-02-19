@@ -3,6 +3,7 @@ import { PrinterIcon, Receipt } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Transaction } from "@/types/pos";
+import usePOPServerStore from "@/stores/pop-server";
 
 // Enhanced processTransaction function - replace your existing one
 
@@ -16,6 +17,7 @@ export const EnhancedReceiptGenerator = ({
   isOpen: boolean;
   onClose: () => void;
 }) => {
+  const { selectedPOPServer } = usePOPServerStore();
   const printReceipt = () => {
     if (!transaction) return;
 
@@ -120,12 +122,12 @@ export const EnhancedReceiptGenerator = ({
         <div class="receipt">
           <div class="header">
             <div class="store-name">${
-              transaction.receiptData?.storeName || "STORE NAME"
+              selectedPOPServer.username || "NOM DE LA BOUTIQUE"
             }</div>
             <div>${
-              transaction.receiptData?.storeAddress || "Store Address"
+              selectedPOPServer.addressVente || "Adresse de la boutique"
             }</div>
-            <div>${transaction.receiptData?.storePhone || "Phone Number"}</div>
+            <div>${selectedPOPServer.siteLivraison ? `Site: ${selectedPOPServer.siteLivraison}` : ""}</div>
           </div>
           
           <div class="receipt-info">

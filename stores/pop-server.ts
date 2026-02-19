@@ -5,6 +5,8 @@ export type POPServer = {
   username: string;
   port: number;
   password: string;
+  addressVente: string;
+  siteLivraison: string;
 };
 
 interface POPServerState {
@@ -18,6 +20,8 @@ const defaultPOPServer: POPServer = {
   username: "",
   port: 995,
   password: "",
+  addressVente: "",
+  siteLivraison: "",
 };
 
 const usePOPServerStore = create<POPServerState>()((set, get) => {

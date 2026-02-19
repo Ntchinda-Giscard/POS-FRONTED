@@ -5,6 +5,7 @@ import React from "react"
 import { useState, useEffect } from 'react'
 import { fetchLivraisonTypes, fetchAdresseExpedition, fetchClients, createLivraison, type AddLivraisonRequest } from '@/lib/api'
 import useSiteVenteStore from "@/stores/site-store"
+import usePOPServerStore from "@/stores/pop-server"
 import {
   Dialog,
   DialogContent,
@@ -50,9 +51,9 @@ export function CreateLivraisonModal({
   onSuccess,
 }: CreateLivraisonModalProps) {
   const { selectedSite } = useSiteVenteStore()
-  const { livraisonTypes, setLivraisonTypes } = useLivraisonDataStore()
+  const { selectedPOPServer } = usePOPServerStore()
   const [isLoading, setIsLoading] = useState(false)
-  const [siteExpedition, setSiteExpedition] = useState(selectedSite?.code || '')
+  const [siteExpedition, setSiteExpedition] = useState(selectedSite?.code || selectedPOPServer.siteLivraison || '')
   const [type, setType] = useState('')
   const [clientLivree, setClientLivree] = useState('')
   const [clientFacture, setClientFacture] = useState('')
@@ -87,8 +88,10 @@ export function CreateLivraisonModal({
   useEffect(() => {
     if (selectedSite) {
       setSiteExpedition(selectedSite.code)
+    } else if (selectedPOPServer.siteLivraison) {
+      setSiteExpedition(selectedPOPServer.siteLivraison)
     }
-  }, [selectedSite])
+  }, [selectedSite, selectedPOPServer.siteLivraison])
 
   useEffect(() => {
     const loadClients = async () => {

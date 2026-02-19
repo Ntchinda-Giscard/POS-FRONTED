@@ -10,6 +10,7 @@ import {
 import type { Transaction } from "@/types/pos";
 import { Printer, Download, Mail, MessageSquare } from "lucide-react";
 import { useRef } from "react";
+import usePOPServerStore from "@/stores/pop-server";
 
 interface ReceiptGeneratorProps {
   transaction: Transaction | null;
@@ -23,6 +24,7 @@ export function ReceiptGenerator({
   onClose,
 }: ReceiptGeneratorProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const { selectedPOPServer } = usePOPServerStore();
 
   console.log(
     "[v0] ReceiptGenerator - isOpen:",
@@ -138,13 +140,18 @@ export function ReceiptGenerator({
             className="receipt bg-white text-black p-4 border rounded-lg font-mono text-sm"
             style={{ fontFamily: "Courier New, monospace" }}
           >
-            <div className="center bold text-lg mb-2">ACME RETAIL STORE</div>
+            <div className="center bold text-lg mb-2">
+              {selectedPOPServer.username || "NOM DE LA BOUTIQUE"}
+            </div>
             <div className="center text-xs mb-4">
-              123 Main Street
+              {selectedPOPServer.addressVente || "Adresse de la boutique"}
               <br />
-              City, State 12345
-              <br />
-              Tel: (555) 123-4567
+              {selectedPOPServer.siteLivraison && (
+                <>
+                  Site: {selectedPOPServer.siteLivraison}
+                  <br />
+                </>
+              )}
             </div>
 
             <div className="separator"></div>

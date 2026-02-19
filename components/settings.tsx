@@ -152,6 +152,33 @@ export function SettingsForm() {
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Adresse de Vente</Label>
+              <Input
+                value={selectedPOPServer.addressVente}
+                onChange={(e) =>
+                  setSelectedPOPServer({
+                    addressVente: e.target.value,
+                  })
+                }
+                placeholder="Ex: 123 Rue de la Vente"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Site de Livraison</Label>
+              <Input
+                value={selectedPOPServer.siteLivraison}
+                onChange={(e) =>
+                  setSelectedPOPServer({
+                    siteLivraison: e.target.value,
+                  })
+                }
+                placeholder="Ex: Entrepôt Principal"
+              />
+            </div>
+          </div>
           {/* Save Button */}
           <div className="flex justify-end">
             <Button size="lg" onClick={handleSubmit}>

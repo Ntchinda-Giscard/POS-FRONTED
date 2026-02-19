@@ -1058,16 +1058,7 @@ export async function getFolderConfig() {
 }
 
 
-export type LivraisonHeader = {
-  id: string
-  type: string
-  date_expedition: string
-  date_livraison: string
-  client_livre: string
-  commande_livre: string
-  site_vente: string
-  statut: string
-}
+
 
 export async function fetchLivraison(): Promise<ApiResponse<LivraisonHeader[]> | null> {
   try {
@@ -1134,6 +1125,37 @@ export async function fetchLivraisonTypes(): Promise<ApiResponse<LivraisonType[]
           ? error.message
           : "Une erreur inconnue est survenue",
       data: undefined,
+    };
+  }
+}
+
+export async function updateLivraisonStatus(id: string, statut: string): Promise<ApiResponse<any>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/livraison/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id, statut }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) throw new Error("Mise à jour du statut a échoué");
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    toast.error("Échec de la mise à jour du statut", {
+      description:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
+    });
+    console.error("[v0] Error updating livraison status:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur inconnue est survenue",
     };
   }
 }

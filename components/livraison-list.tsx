@@ -21,8 +21,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
-import { fetchLivraison, LivraisonHeader, fetchLivraisonTypes } from '@/lib/api'
+import { Search, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, CheckCircle } from 'lucide-react'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { fetchLivraison, LivraisonHeader, fetchLivraisonTypes, updateLivraisonStatus } from '@/lib/api'
+import { toast } from 'sonner'
 
 
 
@@ -37,33 +47,23 @@ export function LivraisonList() {
   const [filterType, setFilterType] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
 
-  useEffect(() => {
-    const fetchLivraisons = async () => {
-      try {
-        const response = await fetchLivraison()
-        
-        if (response && response.success && response.data) {
-          const mappedData: LivraisonHeader[] = response.data.map((item) => ({
-            id: item.id,
-            date_expedition: item.date_expedition,
-            date_livraison: item.date_livraison,
-            client_livre: item.client_livre,
-            commande_livre: item.commande_livre,
-            site_vente: item.site_vente,
-            type: item.type,
-            statut: item.statut
-              // (['pending', 'in-transit', 'delivered'].includes(item.statut) 
-              // ? item.statut 
-              // : 'pending') as 'pending' | 'in-transit' | 'delivered'
-          }))
-          setLivraisons(mappedData)
-        }
-      } catch (error) {
-        console.error('Error fetching livraisons:', error)
-      } finally {
-        setIsLoading(false)
+  const loadLivraisons = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetchLivraison()
+      
+      if (response && response.success && response.data) {
+        setLivraisons(response.data)
       }
+    } catch (error) {
+      console.error('Error fetching livraisons:', error)
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
+    loadLivraisons()
 
     const fetchTypes = async () => {
       try {
@@ -77,7 +77,6 @@ export function LivraisonList() {
       }
     }
 
-    fetchLivraisons()
     // Only fetch types if they haven't been loaded yet
     if (livraisonTypes.length === 0) {
       fetchTypes()
@@ -119,12 +118,54 @@ export function LivraisonList() {
   const endIndex = startIndex + ITEMS_PER_PAGE
   const paginatedLivraisons = filteredLivraisons.slice(startIndex, endIndex)
 
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1))
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
   }
 
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      const response = await updateLivraisonStatus(id, newStatus)
+      if (response && response.success) {
+        toast.success(`Statut mis à jour : ${newStatus === '1' ? 'En attente' : 'Livrée'}`)
+        loadLivraisons() // Refresh the list
+      }
+    } catch (error) {
+      console.error('Error updating status:', error)
+    }
+  }
+
+  const getPageNumbers = () => {
+    const pages = []
+    const siblingCount = 1 // Number of pages to show on each side of the current page
+
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i)
+    } else {
+      // Always show first page
+      pages.push(1)
+
+      const leftSiblingIndex = Math.max(currentPage - siblingCount, 2)
+      const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages - 1)
+
+      const shouldShowLeftDots = leftSiblingIndex > 2
+      const shouldShowRightDots = rightSiblingIndex < totalPages - 1
+
+      if (shouldShowLeftDots) {
+        pages.push('ellipsis')
+      }
+
+      for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
+        pages.push(i)
+      }
+
+      if (shouldShowRightDots) {
+        pages.push('ellipsis')
+      }
+
+      // Always show last page
+      pages.push(totalPages)
+    }
+    return pages
   }
 
   if (isLoading) {
@@ -211,6 +252,7 @@ export function LivraisonList() {
               <TableHead className="bg-muted">Site d'expédition</TableHead>
               <TableHead className="bg-muted">Type</TableHead>
               <TableHead className="bg-muted">Statut</TableHead>
+              <TableHead className="bg-muted text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
         <TableBody>
@@ -226,6 +268,30 @@ export function LivraisonList() {
                   <Badge variant="outline">{livraison.type}</Badge>
                 </TableCell>
                 <TableCell>{getStatusBadge(livraison.statut)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Mettre en attente"
+                      className="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-50"
+                      onClick={() => handleStatusChange(livraison.id, '1')}
+                      disabled={livraison.statut === '1' || livraison.statut === '2'}
+                    >
+                      <Clock className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Marquer comme livrée"
+                      className="h-8 w-8 text-green-500 hover:text-green-600 hover:bg-green-50"
+                      onClick={() => handleStatusChange(livraison.id, '2')}
+                      disabled={livraison.statut === '2'}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))
           ) : (
@@ -240,33 +306,86 @@ export function LivraisonList() {
       </div>
 
       {/* Pagination Footer */}
-      <div className="border-t border-border p-4 flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
+      <div className="border-t border-border p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="text-sm text-muted-foreground order-2 sm:order-1">
           Affichage {filteredLivraisons.length === 0 ? 0 : startIndex + 1} à{' '}
           {Math.min(endIndex, filteredLivraisons.length)} sur {filteredLivraisons.length} livraisons
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePreviousPage}
-            disabled={currentPage === 1}
-            className="bg-transparent"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <div className="px-3 py-1 rounded-md bg-muted text-sm font-medium">
-            {currentPage} / {totalPages || 1}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages || totalPages === 0}
-            className="bg-transparent"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+        
+        <div className="order-1 sm:order-2">
+          <Pagination>
+            <PaginationContent>
+              {/* Skip to First */}
+              <PaginationItem>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="h-9 w-9 p-0"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                  <span className="sr-only">Première page</span>
+                </Button>
+              </PaginationItem>
+
+              <PaginationItem>
+                <PaginationPrevious 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (currentPage > 1) handlePageChange(currentPage - 1)
+                  }}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {getPageNumbers().map((page, index) => (
+                <PaginationItem key={index}>
+                  {page === 'ellipsis' ? (
+                    <PaginationEllipsis />
+                  ) : (
+                    <PaginationLink
+                      href="#"
+                      isActive={currentPage === page}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handlePageChange(page as number)
+                      }}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (currentPage < totalPages) handlePageChange(currentPage + 1)
+                  }}
+                  className={currentPage === totalPages || totalPages === 0 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {/* Skip to Last */}
+              <PaginationItem>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="h-9 w-9 p-0"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                  <span className="sr-only">Dernière page</span>
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       </div>
     </Card>

@@ -3,7 +3,10 @@
 import React from "react"
 
 import { useState, useEffect } from 'react'
-import { fetchLivraisonTypes, fetchAdresseExpedition, fetchClients, createLivraison, type AddLivraisonRequest } from '@/lib/api'
+import {
+  fetchLivraisonTypes, fetchAdresseExpedition, fetchClients, createLivraison, type AddLivraisonRequest,
+  LivraisonType
+} from '@/lib/api'
 import useSiteVenteStore from "@/stores/site-store"
 import usePOPServerStore from "@/stores/pop-server"
 import {
@@ -66,6 +69,7 @@ export function CreateLivraisonModal({
   const [deliveryAddresses, setDeliveryAddresses] = useState<any[]>([])
   const [selectedDeliveryAddress, setSelectedDeliveryAddress] = useState('')
   const [clients, setClients] = useState<Client[]>([])
+  const [livraisonTypes, setLivraisonTypes] = useState<LivraisonType[]>([])
 
   useEffect(() => {
     const loadTypes = async () => {

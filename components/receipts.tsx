@@ -1,432 +1,185 @@
 "use client";
 
-import type React from "react";
-
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Search,
-  Printer,
-  Receipt,
-  CreditCard,
-  Banknote,
-  Smartphone,
-  RotateCcw,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, Printer, Receipt, CreditCard, Banknote, Smartphone, Loader2, RefreshCw } from "lucide-react";
+import { fetchPaymentDetail, searchPayments, type PaymentDetail, type PaymentRecord } from "@/lib/api";
+import { money } from "@/components/cash-session";
+import { printReceiptHtml } from "@/lib/receipt-print";
+import useSiteInfoStore from "@/stores/site-info-store";
+import useUserStore from "@/stores/user-store";
 
-type PaymentMethod = "carte" | "especes" | "mobile" | "cheque";
-type ReceiptStatus = "complete" | "rembourse" | "annule";
+type Row = PaymentRecord & { customerName?: string | null; userCode?: string | null; site?: string | null };
 
-interface ReceiptItem {
-  nom: string;
-  quantite: number;
-  prixUnitaire: number;
+const METHOD_LABELS: Record<string, string> = { cash: "Espèces", card: "Carte", digital: "Mobile money" };
+
+function MethodIcon({ method }: { method: string }) {
+  if (method === "card") return <CreditCard className="h-4 w-4" />;
+  if (method === "digital") return <Smartphone className="h-4 w-4" />;
+  return <Banknote className="h-4 w-4" />;
 }
 
-interface ReceiptData {
-  id: string;
-  numero: string;
-  date: string;
-  heure: string;
-  montant: number;
-  methodePaiement: PaymentMethod;
-  statut: ReceiptStatus;
-  articles: ReceiptItem[];
-  vendeur: string;
-  tva: number;
-}
+const today = () => new Date().toISOString().slice(0, 10);
 
-const receiptsData: ReceiptData[] = [
-  {
-    id: "1",
-    numero: "TK-2024-001542",
-    date: "27/11/2024",
-    heure: "14:32",
-    montant: 45.8,
-    methodePaiement: "carte",
-    statut: "complete",
-    articles: [
-      { nom: "Café Espresso", quantite: 2, prixUnitaire: 2.5 },
-      { nom: "Sandwich Club", quantite: 1, prixUnitaire: 8.9 },
-      { nom: "Croissant", quantite: 3, prixUnitaire: 1.5 },
-      { nom: "Jus d'Orange", quantite: 2, prixUnitaire: 3.0 },
-      { nom: "Salade César", quantite: 1, prixUnitaire: 12.9 },
-    ],
-    vendeur: "Marie D.",
-    tva: 7.63,
-  },
-  {
-    id: "2",
-    numero: "TK-2024-001541",
-    date: "27/11/2024",
-    heure: "13:45",
-    montant: 28.5,
-    methodePaiement: "especes",
-    statut: "complete",
-    articles: [
-      { nom: "Menu Midi", quantite: 2, prixUnitaire: 12.5 },
-      { nom: "Eau minérale", quantite: 2, prixUnitaire: 1.75 },
-    ],
-    vendeur: "Pierre L.",
-    tva: 4.75,
-  },
-  {
-    id: "3",
-    numero: "TK-2024-001540",
-    date: "27/11/2024",
-    heure: "12:20",
-    montant: 15.9,
-    methodePaiement: "mobile",
-    statut: "rembourse",
-    articles: [
-      { nom: "Pizza Margherita", quantite: 1, prixUnitaire: 12.9 },
-      { nom: "Soda", quantite: 1, prixUnitaire: 3.0 },
-    ],
-    vendeur: "Marie D.",
-    tva: 2.65,
-  },
-  {
-    id: "4",
-    numero: "TK-2024-001539",
-    date: "27/11/2024",
-    heure: "11:15",
-    montant: 67.2,
-    methodePaiement: "carte",
-    statut: "complete",
-    articles: [
-      { nom: "Plateau Petit-déjeuner", quantite: 2, prixUnitaire: 18.9 },
-      { nom: "Cappuccino", quantite: 2, prixUnitaire: 4.2 },
-      { nom: "Viennoiserie assortie", quantite: 1, prixUnitaire: 8.5 },
-      { nom: "Jus de fruits frais", quantite: 2, prixUnitaire: 5.5 },
-    ],
-    vendeur: "Sophie M.",
-    tva: 11.2,
-  },
-  {
-    id: "5",
-    numero: "TK-2024-001538",
-    date: "26/11/2024",
-    heure: "19:30",
-    montant: 0.0,
-    methodePaiement: "carte",
-    statut: "annule",
-    articles: [{ nom: "Menu Soirée", quantite: 1, prixUnitaire: 24.9 }],
-    vendeur: "Pierre L.",
-    tva: 0.0,
-  },
-  {
-    id: "6",
-    numero: "TK-2024-001537",
-    date: "26/11/2024",
-    heure: "18:45",
-    montant: 92.4,
-    methodePaiement: "cheque",
-    statut: "complete",
-    articles: [
-      { nom: "Menu Famille", quantite: 1, prixUnitaire: 45.0 },
-      { nom: "Dessert du jour", quantite: 4, prixUnitaire: 6.5 },
-      { nom: "Boissons", quantite: 4, prixUnitaire: 4.1 },
-    ],
-    vendeur: "Marie D.",
-    tva: 15.4,
-  },
-];
+export function ReceiptsContent({ site }: { site?: string }) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [method, setMethod] = useState("all");
+  const [dateFrom, setDateFrom] = useState(today());
+  const [dateTo, setDateTo] = useState(today());
+  const [detail, setDetail] = useState<PaymentDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const siteInfo = useSiteInfoStore((s) => s.info);
+  const users = useUserStore((s) => s.currentUser);
 
-const paymentIcons: Record<
-  PaymentMethod,
-  React.ComponentType<{ className?: string }>
-> = {
-  carte: CreditCard,
-  especes: Banknote,
-  mobile: Smartphone,
-  cheque: Receipt,
-};
+  const load = async () => {
+    setLoading(true);
+    const response = await searchPayments({
+      date_from: dateFrom || undefined,
+      date_to: dateTo || undefined,
+      method: method === "all" ? undefined : method,
+      search: search || undefined,
+      limit: 500,
+    });
+    setRows(response.success && response.data ? response.data.filter((r) => !site || !r.site || r.site === site) : []);
+    setLoading(false);
+  };
 
-const paymentLabels: Record<PaymentMethod, string> = {
-  carte: "Carte",
-  especes: "Espèces",
-  mobile: "Mobile",
-  cheque: "Chèque",
-};
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFrom, dateTo, method, site]);
 
-const statusConfig: Record<
-  ReceiptStatus,
-  {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
-  }
-> = {
-  complete: { label: "Complété", variant: "default" },
-  rembourse: { label: "Remboursé", variant: "secondary" },
-  annule: { label: "Annulé", variant: "destructive" },
-};
+  const openDetail = async (transactionId: string) => {
+    setLoadingDetail(true);
+    const response = await fetchPaymentDetail(transactionId);
+    setLoadingDetail(false);
+    if (response.success && response.data) setDetail(response.data);
+  };
 
-export function ReceiptsContent() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("tous");
-  const [paymentFilter, setPaymentFilter] = useState<string>("tous");
-  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(
-    null
-  );
-
-  const filteredReceipts = receiptsData.filter((receipt) => {
-    const matchesSearch = receipt.numero
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "tous" || receipt.statut === statusFilter;
-    const matchesPayment =
-      paymentFilter === "tous" || receipt.methodePaiement === paymentFilter;
-    return matchesSearch && matchesStatus && matchesPayment;
-  });
+  const total = rows.reduce((sum, r) => sum + r.amount, 0);
+  const currency = rows.find((r) => r.currency)?.currency ?? siteInfo?.currency ?? undefined;
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher par numéro de ticket..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tous">Tous les statuts</SelectItem>
-                <SelectItem value="complete">Complété</SelectItem>
-                <SelectItem value="rembourse">Remboursé</SelectItem>
-                <SelectItem value="annule">Annulé</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Paiement" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tous">Tous les paiements</SelectItem>
-                <SelectItem value="carte">Carte</SelectItem>
-                <SelectItem value="especes">Espèces</SelectItem>
-                <SelectItem value="mobile">Mobile</SelectItem>
-                <SelectItem value="cheque">Chèque</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Reçus</div><div className="text-2xl font-bold">{rows.length}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Montant encaissé</div><div className="text-2xl font-bold font-mono">{money(total, currency)}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Période</div><div className="text-lg font-medium">{dateFrom} → {dateTo}</div></CardContent></Card>
+      </div>
 
-      {/* Receipts Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Liste des tickets
-            <Badge variant="outline" className="ml-2 font-normal">
-              {filteredReceipts.length} résultat
-              {filteredReceipts.length !== 1 ? "s" : ""}
-            </Badge>
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2"><Receipt className="h-5 w-5" /> Reçus</CardTitle>
+          <CardDescription>Paiements enregistrés à la caisse. Cliquez sur un reçu pour le réimprimer.</CardDescription>
+          <div className="flex flex-col md:flex-row gap-2 pt-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="N° reçu, commande, client, référence, téléphone…" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && load()} className="pl-9" />
+            </div>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full md:w-[160px]" />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full md:w-[160px]" />
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="w-full md:w-[170px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les modes</SelectItem>
+                <SelectItem value="cash">Espèces</SelectItem>
+                <SelectItem value="card">Carte</SelectItem>
+                <SelectItem value="digital">Mobile money</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4" /></Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Numéro</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Paiement</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Montant</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredReceipts.map((receipt) => {
-                const PaymentIcon = paymentIcons[receipt.methodePaiement];
-                const status = statusConfig[receipt.statut];
-
-                return (
-                  <TableRow
-                    key={receipt.id}
-                    className="cursor-pointer"
-                    onClick={() => setSelectedReceipt(receipt)}
-                  >
-                    <TableCell className="font-mono font-medium">
-                      {receipt.numero}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p>{receipt.date}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {receipt.heure}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <PaymentIcon className="h-4 w-4 text-muted-foreground" />
-                        <span>{paymentLabels[receipt.methodePaiement]}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={status.variant}>{status.label}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {receipt.montant.toFixed(2)} €
-                    </TableCell>
+          {loading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">Aucun reçu sur cette période.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reçu</TableHead><TableHead>Date</TableHead><TableHead>Commande</TableHead><TableHead>Client</TableHead>
+                    <TableHead>Caissier</TableHead><TableHead>Mode</TableHead><TableHead>Détail</TableHead><TableHead className="text-right">Montant</TableHead><TableHead />
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-
-          {filteredReceipts.length === 0 && (
-            <div className="text-center py-12">
-              <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Aucun ticket trouvé</p>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r) => (
+                    <TableRow key={r.transactionId} className="cursor-pointer" onClick={() => openDetail(r.transactionId)}>
+                      <TableCell className="font-mono text-xs">{r.transactionId}</TableCell>
+                      <TableCell>{new Date(r.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="font-mono text-xs">{r.orderId}</TableCell>
+                      <TableCell>{r.customerName ?? r.customerCode ?? "—"}</TableCell>
+                      <TableCell>{r.userCode ?? "—"}</TableCell>
+                      <TableCell><Badge variant="outline" className="gap-1"><MethodIcon method={r.method} />{METHOD_LABELS[r.method] ?? r.method}</Badge></TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {r.method === "cash" && r.change != null && `Reçu ${money(r.amountTendered, r.currency)} · monnaie ${money(r.change, r.currency)}`}
+                        {r.method === "card" && (r.reference ? `Réf. ${r.reference}` : "")}
+                        {r.method === "digital" && `${r.provider ?? ""} ${r.phone ?? ""}${r.reference ? ` · ${r.reference}` : ""}`}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">{money(r.amount, r.currency)}</TableCell>
+                      <TableCell><Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openDetail(r.transactionId); }}><Printer className="h-4 w-4" /></Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Receipt Detail Dialog */}
-      <Dialog
-        open={!!selectedReceipt}
-        onOpenChange={(open) => !open && setSelectedReceipt(null)}
-      >
-        {selectedReceipt && (
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5" />
-                Ticket {selectedReceipt.numero}
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              {/* Header Info */}
-              <div className="flex justify-between items-start text-sm">
-                <div className="space-y-1">
-                  <p className="text-muted-foreground">Date & Heure</p>
-                  <p className="font-medium">
-                    {selectedReceipt.date} à {selectedReceipt.heure}
-                  </p>
-                </div>
-                <Badge variant={statusConfig[selectedReceipt.statut].variant}>
-                  {statusConfig[selectedReceipt.statut].label}
-                </Badge>
+      <Dialog open={!!detail || loadingDetail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Reçu {detail?.transactionId}</DialogTitle>
+          </DialogHeader>
+          {loadingDetail && <Loader2 className="h-5 w-5 animate-spin" />}
+          {detail && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-muted-foreground">Date</span><div>{new Date(detail.createdAt).toLocaleString()}</div></div>
+                <div><span className="text-muted-foreground">Commande</span><div className="font-mono">{detail.orderId}</div></div>
+                <div><span className="text-muted-foreground">Client</span><div>{detail.customerName ?? detail.customerCode ?? "—"}</div></div>
+                <div><span className="text-muted-foreground">Caissier</span><div>{detail.userCode ?? "—"}</div></div>
+                <div><span className="text-muted-foreground">Mode</span><div>{METHOD_LABELS[detail.method] ?? detail.method}{detail.provider ? ` (${detail.provider})` : ""}</div></div>
+                <div><span className="text-muted-foreground">Référence</span><div>{detail.reference ?? detail.phone ?? "—"}</div></div>
               </div>
-
-              {/* Items */}
-              <div className="border rounded-lg divide-y">
-                <div className="px-4 py-2 bg-muted/50">
-                  <p className="text-sm font-medium">Articles</p>
-                </div>
-                {selectedReceipt.articles.map((article, idx) => (
-                  <div
-                    key={idx}
-                    className="px-4 py-3 flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="text-sm font-medium">{article.nom}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {article.quantite} x {article.prixUnitaire.toFixed(2)} €
-                      </p>
-                    </div>
-                    <p className="text-sm font-medium">
-                      {(article.quantite * article.prixUnitaire).toFixed(2)} €
-                    </p>
-                  </div>
-                ))}
+              <Table>
+                <TableHeader>
+                  <TableRow><TableHead>Article</TableHead><TableHead className="text-right">Qté</TableHead><TableHead className="text-right">PU TTC</TableHead><TableHead className="text-right">Total</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detail.lines.map((l) => (
+                    <TableRow key={`${l.line}-${l.item_code}`}>
+                      <TableCell><div>{l.description}</div><div className="text-xs text-muted-foreground font-mono">{l.item_code}{l.tax_code ? ` · ${l.tax_code}` : ""}{l.free ? " · gratuit" : ""}</div></TableCell>
+                      <TableCell className="text-right">{l.quantity}</TableCell>
+                      <TableCell className="text-right font-mono">{money(l.net_price_ttc, detail.currency)}</TableCell>
+                      <TableCell className="text-right font-mono">{money(l.quantity * l.net_price_ttc, detail.currency)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="space-y-1 border-t pt-2">
+                {detail.total_ht != null && <div className="flex justify-between"><span>Total HT</span><span className="font-mono">{money(detail.total_ht, detail.currency)}</span></div>}
+                {detail.total_ht != null && detail.total_ttc != null && <div className="flex justify-between"><span>TVA</span><span className="font-mono">{money(detail.total_ttc - detail.total_ht, detail.currency)}</span></div>}
+                <div className="flex justify-between font-semibold text-base"><span>Payé</span><span className="font-mono">{money(detail.amount, detail.currency)}</span></div>
+                {detail.change != null && <div className="flex justify-between text-muted-foreground"><span>Reçu / monnaie</span><span className="font-mono">{money(detail.amountTendered, detail.currency)} / {money(detail.change, detail.currency)}</span></div>}
               </div>
-
-              {/* Totals */}
-              <div className="space-y-2 pt-2 border-t">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Sous-total HT</span>
-                  <span>
-                    {(selectedReceipt.montant - selectedReceipt.tva).toFixed(2)}{" "}
-                    €
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">TVA (20%)</span>
-                  <span>{selectedReceipt.tva.toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between font-semibold text-lg pt-2 border-t">
-                  <span>Total TTC</span>
-                  <span>{selectedReceipt.montant.toFixed(2)} €</span>
-                </div>
-              </div>
-
-              {/* Payment & Seller */}
-              <div className="flex justify-between items-center text-sm pt-2 border-t">
-                <div className="flex items-center gap-2">
-                  {(() => {
-                    const PaymentIcon =
-                      paymentIcons[selectedReceipt.methodePaiement];
-                    return (
-                      <PaymentIcon className="h-4 w-4 text-muted-foreground" />
-                    );
-                  })()}
-                  <span>{paymentLabels[selectedReceipt.methodePaiement]}</span>
-                </div>
-                <span className="text-muted-foreground">
-                  Vendeur: {selectedReceipt.vendeur}
-                </span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2 bg-transparent"
-                >
-                  <Printer className="h-4 w-4" />
-                  Imprimer
-                </Button>
-                {selectedReceipt.statut === "complete" && (
-                  <Button
-                    variant="outline"
-                    className="flex-1 gap-2 bg-transparent"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Rembourser
-                  </Button>
-                )}
-              </div>
+              <Button className="w-full" onClick={() => printReceiptHtml(detail, siteInfo, users?.name)}>
+                <Printer className="h-4 w-4 mr-2" /> Réimprimer le reçu
+              </Button>
             </div>
-          </DialogContent>
-        )}
+          )}
+        </DialogContent>
       </Dialog>
     </div>
   );

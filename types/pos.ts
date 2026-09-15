@@ -8,8 +8,11 @@ export interface Product {
   categorie: string;
   unit_sales?: string;
   stock: number;
-  barcode?: string;
+  barcode?: string | null;
   image?: Base64URLString | null;
+  tax_level?: string | null;
+  safety_stock?: number | null;
+  max_stock?: number | null;
 }
 
 export interface Customer {
@@ -44,6 +47,9 @@ export interface CartItem {
   totalPrice: number;
   totalpriceHT: number;
   free_items?: Record<string, any>[] | null;
+  tax_code?: string;
+  tax_rate?: number;
+  tax_warning?: string | null;
 }
 
 export interface Transaction {
@@ -69,6 +75,11 @@ export interface Transaction {
     currency: string;
     valoTotalHT?: number;
     valoTotalTTC?: number;
+    storeVatNumber?: string;
+    footer?: string;
+    change?: number;
+    amountTendered?: number;
+    paymentReference?: string;
   };
 }
 
@@ -185,6 +196,9 @@ export interface LigneCommande {
   prix_net_ht: number;
   prix_net_ttc: number;
   free_items?: Record<string, any>[] | null;
+  description?: string;
+  unit?: string;
+  tax_code?: string;
 }
 
 export interface SalesOrder {
@@ -202,4 +216,7 @@ export interface SalesOrder {
   comd_type: string;
   regime_taxe: string;
   ligne: LigneCommande[];
+  user_code?: string;
+  site_stock?: string;
+  order_date?: string;
 }

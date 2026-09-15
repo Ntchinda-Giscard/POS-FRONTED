@@ -122,12 +122,15 @@ export const EnhancedReceiptGenerator = ({
         <div class="receipt">
           <div class="header">
             <div class="store-name">${
-              selectedPOPServer.username || "NOM DE LA BOUTIQUE"
+              transaction.receiptData?.storeName || selectedPOPServer.addressVente || "Point de vente"
             }</div>
-            <div>${
-              selectedPOPServer.addressVente || "Adresse de la boutique"
-            }</div>
-            <div>${selectedPOPServer.siteLivraison ? `Site: ${selectedPOPServer.siteLivraison}` : ""}</div>
+            ${(transaction.receiptData?.storeAddress || "")
+              .split(String.fromCharCode(10))
+              .filter(Boolean)
+              .map((line) => `<div>${line}</div>`)
+              .join("")}
+            ${transaction.receiptData?.storePhone ? `<div>${transaction.receiptData.storePhone}</div>` : ""}
+            ${transaction.receiptData?.storeVatNumber ? `<div>N° TVA ${transaction.receiptData.storeVatNumber}</div>` : ""}
           </div>
           
           <div class="receipt-info">
@@ -214,9 +217,13 @@ export const EnhancedReceiptGenerator = ({
           </div>
 
           <div class="footer">
-            <div>Payment Method: ${transaction.paymentMethod.toUpperCase()}</div>
-            <div style="margin-top: 10px;">Thank you for your business!</div>
-            <div>Please keep this receipt for your records</div>
+            <div>Mode de paiement : ${
+              { cash: "ESPÈCES", card: "CARTE", digital: "MOBILE MONEY" }[transaction.paymentMethod] ?? transaction.paymentMethod.toUpperCase()
+            }</div>
+            ${transaction.receiptData?.amountTendered != null ? `<div>Reçu : ${transaction.receiptData?.currency}${transaction.receiptData.amountTendered.toFixed(2)}</div>` : ""}
+            ${transaction.receiptData?.change != null ? `<div>Monnaie rendue : ${transaction.receiptData?.currency}${transaction.receiptData.change.toFixed(2)}</div>` : ""}
+            ${transaction.receiptData?.paymentReference ? `<div>Référence : ${transaction.receiptData.paymentReference}</div>` : ""}
+            <div style="margin-top: 10px;">${transaction.receiptData?.footer || "Merci de votre visite"}</div>
           </div>
         </div>
 

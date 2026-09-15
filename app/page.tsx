@@ -237,7 +237,7 @@ export default function POSApp() {
   const { selectTierCode, setTierCode } = useTierStore();
 
   useEffect(() => {
-    console.log("Selected client code changed:", selectedClientCode);
+    if (!selectedClientCode) return; // nothing selected yet (e.g. login screen)
     const loadingClients = async () => {
       try {
         const response = await fetchTiers(selectedClientCode);
@@ -746,9 +746,11 @@ export default function POSApp() {
       setElementFacts(response.data || []);
       console.log("Element facturation", response);
     };
-    loadElementFacturation();
-    loadInitialData();
-    loadingCurrency();
+    if (siteExoeditionCode) loadInitialData();
+    if (selectedClientCode) {
+      loadElementFacturation();
+      loadingCurrency();
+    }
   }, [siteExoeditionCode, selectedClientCode]);
 
   const applyElementFact = (montant: number) => {
@@ -804,6 +806,7 @@ export default function POSApp() {
   const valoTotalTTc = applyElementFact(subtotalTTC);
 
   useEffect(() => {
+    if (!selectedClientCode) return;
     const loadingTaxe = async () => {
       try {
         const response = await fetchTaxRegimes(selectedClientCode);

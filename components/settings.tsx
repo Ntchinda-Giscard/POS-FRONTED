@@ -19,6 +19,7 @@ import {
   saveFolderConfig,
   saveSettingsPOP,
 } from "@/lib/api";
+import { TillSettings } from "@/components/settings-till";
 
 declare global {
   interface Window {
@@ -26,7 +27,7 @@ declare global {
   }
 }
 
-export function SettingsForm() {
+export function SettingsForm({ site }: { site?: string }) {
   const [folderPath, setFolderPath] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingFolder, setIsLoadingFolder] = useState(false);
@@ -37,8 +38,8 @@ export function SettingsForm() {
       // Here you can implement loading existing settings if needed
       const response = await getSettingsPOP();
       const reponse_path = await getFolderConfig();
-      setFolderPath(reponse_path.data.path);
-      setSelectedPOPServer(response.data);
+      if (reponse_path?.data?.path) setFolderPath(reponse_path.data.path);
+      if (response?.data) setSelectedPOPServer(response.data);
     };
     loadSettingPOP();
   }, []);
@@ -247,6 +248,8 @@ export function SettingsForm() {
           </div>
         </CardContent>
       </Card>
+
+      <TillSettings site={site} />
     </div>
   );
 }

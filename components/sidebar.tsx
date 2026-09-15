@@ -9,7 +9,6 @@ import {
   Menu,
   X,
   Home,
-  BarChart3,
   History,
   Settings,
   TrendingUp,
@@ -18,47 +17,53 @@ import {
   Receipt,
   Lock,
   Unlock,
+  Truck,
+  Wallet,
+  LogOut,
+  UserRound,
 } from "lucide-react";
-import type { Transaction } from "@/types/pos";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy } from "lucide-react";
+import useUserStore from "@/stores/user-store";
+import useCashSessionStore from "@/stores/cash-session-store";
+import { money } from "@/components/cash-session";
 
 interface SidebarProps {
   currentView: string;
   onViewChange: (view: string) => void;
-  transactionHistory: Transaction[];
-  cashDrawerOpen: boolean;
-  onToggleCashDrawer: () => void;
-  cashDrawerAmount: number;
+  transactionHistory: Array<{ total: number }>;
+  onOpenCash: () => void;
+  onCloseCash: () => void;
+  currency?: string;
 }
+
+const ROLE_LABELS: Record<string, string> = { admin: "Administrateur", manager: "Responsable", cashier: "Caissier" };
 
 export function Sidebar({
   currentView,
   onViewChange,
   transactionHistory,
-  cashDrawerOpen,
-  onToggleCashDrawer,
-  cashDrawerAmount,
+  onOpenCash,
+  onCloseCash,
+  currency,
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const user = useUserStore((s) => s.currentUser);
+  const logout = useUserStore((s) => s.logout);
+  const session = useCashSessionStore((s) => s.session);
 
   const menuItems = [
-    { id: "pos", label: "Point of Sale", icon: Home, badge: null },
-    { id: "livraison", label: "Livraison", icon: BarChart3, badge: null },
-    {
-      id: "history",
-      label: "Transaction History",
-      icon: History,
-      badge: transactionHistory.length,
-    },
-    { id: "customers", label: "Customers", icon: Users, badge: null },
-    { id: "inventory", label: "Inventory", icon: Package, badge: null },
-    { id: "reports", label: "Reports", icon: TrendingUp, badge: null },
-    { id: "receipts", label: "Receipts", icon: Receipt, badge: null },
-    { id: "settings", label: "Settings", icon: Settings, badge: null },
+    { id: "pos", label: "Point de vente", icon: Home, badge: null },
+    { id: "cash", label: "Caisse", icon: Wallet, badge: null },
+    { id: "livraison", label: "Livraisons", icon: Truck, badge: null },
+    { id: "history", label: "Transactions du jour", icon: History, badge: transactionHistory.length },
+    { id: "receipts", label: "Reçus", icon: Receipt, badge: null },
+    { id: "customers", label: "Clients", icon: Users, badge: null },
+    { id: "inventory", label: "Inventaire", icon: Package, badge: null },
+    { id: "reports", label: "Rapports", icon: TrendingUp, badge: null },
+    { id: "settings", label: "Paramètres", icon: Settings, badge: null },
   ];
 
   const todaysRevenue = transactionHistory.reduce((sum, t) => sum + t.total, 0);
+  const cur = session?.currency ?? currency;
 
   return (
     <>
@@ -84,75 +89,69 @@ export function Sidebar({
         lg:relative lg:translate-x-0
       `}
       >
-        <div className="p-4 h-full flex flex-col">
+        <div className="p-4 h-full flex flex-col overflow-y-auto">
           {/* Header */}
-          <div className={`mb-6 ${isCollapsed ? "lg:text-center" : ""}`}>
+          <div className={`mb-4 ${isCollapsed ? "lg:text-center" : ""}`}>
             <div className="flex items-center justify-between">
-              <h2
-                className={`font-bold text-lg ${
-                  isCollapsed ? "lg:hidden" : ""
-                }`}
-              >
-                POS System
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="hidden lg:flex"
-                onClick={() => setIsCollapsed(!isCollapsed)}
-              >
+              <h2 className={`font-bold text-lg ${isCollapsed ? "lg:hidden" : ""}`}>POS System</h2>
+              <Button variant="ghost" size="sm" className="hidden lg:flex" onClick={() => setIsCollapsed(!isCollapsed)}>
                 <Menu className="h-4 w-4" />
               </Button>
             </div>
-            {!isCollapsed && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Retail Management
-              </p>
-            )}
+            {!isCollapsed && <p className="text-sm text-muted-foreground mt-1">Caisse connectée à Sage X3</p>}
           </div>
 
+          {/* Signed-in user */}
+          {user && !isCollapsed && (
+            <Card className="mb-3">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <UserRound className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{user.name}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{user.code} · {ROLE_LABELS[user.role] ?? user.role}</div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="p-1 h-7" onClick={logout} title="Fermer la session">
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Cash Drawer Status */}
-          <Card
-            className={`mb-4 transition-all duration-200 hover:shadow-md ${
-              isCollapsed ? "lg:hidden" : ""
-            }`}
-          >
+          <Card className={`mb-3 transition-all duration-200 hover:shadow-md ${isCollapsed ? "lg:hidden" : ""}`}>
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Cash Drawer</span>
+                <span className="text-sm font-medium">Caisse</span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={onToggleCashDrawer}
-                  className={`p-1 transition-colors duration-200 ${
-                    cashDrawerOpen
-                      ? "text-green-600 hover:text-green-700"
-                      : "text-red-600 hover:text-red-700"
-                  }`}
+                  onClick={session ? onCloseCash : onOpenCash}
+                  className={`p-1 transition-colors duration-200 ${session ? "text-green-600 hover:text-green-700" : "text-red-600 hover:text-red-700"}`}
+                  title={session ? "Fermer la caisse" : "Ouvrir la caisse"}
                 >
-                  {cashDrawerOpen ? (
-                    <Unlock className="h-4 w-4" />
-                  ) : (
-                    <Lock className="h-4 w-4" />
-                  )}
+                  {session ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                 </Button>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span>Status:</span>
-                  <Badge
-                    variant={cashDrawerOpen ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {cashDrawerOpen ? "Open" : "Closed"}
-                  </Badge>
+                  <span>Statut :</span>
+                  <Badge variant={session ? "default" : "secondary"} className="text-xs">{session ? "Ouverte" : "Fermée"}</Badge>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span>Amount:</span>
-                  <span className="font-mono">
-                    ${cashDrawerAmount.toFixed(2)}
-                  </span>
-                </div>
+                {session ? (
+                  <>
+                    <div className="flex justify-between text-xs"><span>Fond :</span><span className="font-mono">{money(session.opening_amount, cur)}</span></div>
+                    <div className="flex justify-between text-xs"><span>Espèces attendues :</span><span className="font-mono">{money(session.expected_amount, cur)}</span></div>
+                    <div className="text-[10px] text-muted-foreground">Ouverte {new Date(session.opened_at).toLocaleTimeString()} par {session.user_code}</div>
+                  </>
+                ) : (
+                  <Button size="sm" variant="outline" className="w-full mt-1" onClick={onOpenCash}>
+                    <Unlock className="h-3 w-3 mr-1" /> Ouvrir la caisse
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -161,20 +160,10 @@ export function Sidebar({
           {!isCollapsed && (
             <Card className="mb-4 transition-all duration-200 hover:shadow-md">
               <CardContent className="p-3">
-                <h3 className="text-sm font-medium mb-2">Today's Summary</h3>
+                <h3 className="text-sm font-medium mb-2">Aujourd'hui</h3>
                 <div className="space-y-1 text-xs">
-                  <div className="flex justify-between">
-                    <span>Transactions:</span>
-                    <span className="font-medium">
-                      {transactionHistory.length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Revenue:</span>
-                    <span className="font-medium text-green-600">
-                      ${todaysRevenue.toFixed(2)}
-                    </span>
-                  </div>
+                  <div className="flex justify-between"><span>Transactions :</span><span className="font-medium">{transactionHistory.length}</span></div>
+                  <div className="flex justify-between"><span>Encaissé :</span><span className="font-medium text-green-600 font-mono">{money(todaysRevenue, cur)}</span></div>
                 </div>
               </CardContent>
             </Card>
@@ -203,19 +192,12 @@ export function Sidebar({
                         if (window.innerWidth < 1024) setIsCollapsed(true);
                       }}
                     >
-                      <Icon
-                        className={`h-4 w-4 ${isCollapsed ? "" : "mr-2"}`}
-                      />
+                      <Icon className={`h-4 w-4 ${isCollapsed ? "" : "mr-2"}`} />
                       {!isCollapsed && (
                         <>
                           <span className="flex-1 text-left">{item.label}</span>
                           {item.badge !== null && item.badge > 0 && (
-                            <Badge
-                              variant="secondary"
-                              className="ml-auto text-xs"
-                            >
-                              {item.badge}
-                            </Badge>
+                            <Badge variant="secondary" className="ml-auto text-xs">{item.badge}</Badge>
                           )}
                         </>
                       )}
@@ -240,10 +222,7 @@ export function Sidebar({
 
       {/* Overlay for mobile */}
       {!isCollapsed && (
-        <div
-          className="fixed inset-0 bg-black/20 z-30 lg:hidden"
-          onClick={() => setIsCollapsed(true)}
-        />
+        <div className="fixed inset-0 bg-black/20 z-30 lg:hidden" onClick={() => setIsCollapsed(true)} />
       )}
     </>
   );

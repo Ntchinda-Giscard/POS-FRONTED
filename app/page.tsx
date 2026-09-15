@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -53,16 +54,28 @@ import useSiteExpeditionStore from "@/stores/expedition-store";
 import {
   createSalseOrder,
   fetchAppliedTaxes,
+  fetchArticleByBarcode,
   fetchCommandCurrency,
   fetchElementFacturation,
+  fetchPayments,
   fetchPricing,
   fetchProducts,
   fetchTaxRegimes,
   fetchTiers,
+  PaymentRecord,
   PricingRequest,
+  processPayment,
   synchronizeData,
   Tax,
 } from "@/lib/api";
+import { LoginScreen } from "@/components/login-screen";
+import { CashSessionView, CloseCashDialog, OpenCashDialog } from "@/components/cash-session";
+import { CustomersContent } from "@/components/customers";
+import { InventoryContent } from "@/components/inventory";
+import useUserStore from "@/stores/user-store";
+import useCashSessionStore from "@/stores/cash-session-store";
+import useSiteInfoStore from "@/stores/site-info-store";
+import useCommandTypeStore from "@/stores/command-type-store";
 import {
   CartItem,
   Customer,
@@ -121,6 +134,39 @@ const tabs = [
   },
 ];
 
+// A payment registered at the till, as shown in the history list and the sidebar summary.
+type HistoryEntry = {
+  id: string;
+  orderId: string;
+  timestamp: Date;
+  total: number;
+  paymentMethod: "cash" | "card" | "digital";
+  reference?: string | null;
+  provider?: string | null;
+  phone?: string | null;
+  change?: number | null;
+  currency?: string | null;
+};
+
+const toHistoryEntry = (payment: PaymentRecord): HistoryEntry => ({
+  id: payment.transactionId,
+  orderId: payment.orderId,
+  timestamp: new Date(payment.createdAt),
+  total: payment.amount,
+  paymentMethod: payment.method,
+  reference: payment.reference,
+  provider: payment.provider,
+  phone: payment.phone,
+  change: payment.change,
+  currency: payment.currency,
+});
+
+const todayIso = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 export default function POSApp() {
   useEffect(() => {
     const handleSync = async () => {
@@ -151,7 +197,10 @@ export default function POSApp() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transactionHistory, setTransactionHistory] = useState<any[]>([]);
+  const [transactionHistory, setTransactionHistory] = useState<HistoryEntry[]>([]);
+  // Order already written to SORDER for the current cart; set when the order was
+  // created but the payment failed to register, so a retry doesn't duplicate it.
+  const pendingOrderRef = useRef<string | null>(null);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -164,8 +213,19 @@ export default function POSApp() {
   const [showQuantityControls, setShowQuantityControls] = useState<
     Record<string, boolean>
   >({});
-  const [cashDrawerOpen, setCashDrawerOpen] = useState(false);
-  const [cashDrawerAmount, setCashDrawerAmount] = useState(200.0);
+  const [openCashDialog, setOpenCashDialog] = useState(false);
+  const [closeCashDialog, setCloseCashDialog] = useState(false);
+  const currentUser = useUserStore((s) => s.currentUser);
+  const cashSession = useCashSessionStore((s) => s.session);
+  const refreshCashSession = useCashSessionStore((s) => s.refresh);
+  const siteInfo = useSiteInfoStore((s) => s.info);
+  const loadSiteInfo = useSiteInfoStore((s) => s.load);
+  const selectedCommandType = useCommandTypeStore((s) => s.selectedTypeCode);
+  const [paymentMethodForm, setPaymentMethodForm] = useState<"none" | "cash" | "card" | "digital">("none");
+  const [digitalPhone, setDigitalPhone] = useState<string>("");
+  const [digitalProvider, setDigitalProvider] = useState<string>("MOMO");
+  const [cardReference, setCardReference] = useState<string>("");
+  const [cashReceived, setCashReceived] = useState<string>("");
 
   const { theme, setTheme } = useTheme();
   const siteExoeditionCode = useSiteExpeditionStore(
@@ -177,7 +237,7 @@ export default function POSApp() {
   const { selectTierCode, setTierCode } = useTierStore();
 
   useEffect(() => {
-    console.log("Selected client code changed:", selectedClientCode);
+    if (!selectedClientCode) return; // nothing selected yet (e.g. login screen)
     const loadingClients = async () => {
       try {
         const response = await fetchTiers(selectedClientCode);
@@ -203,7 +263,8 @@ export default function POSApp() {
       selectedCategory === "all" || product?.categorie === selectedCategory;
     const matchesSearch =
       product?.describtion?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
-      product?.item_code?.includes(searchTerm);
+      product?.item_code?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
+      (product?.barcode ?? "").includes(searchTerm);
     return matchesCategory && matchesSearch;
   });
 
@@ -227,6 +288,84 @@ export default function POSApp() {
     };
   };
 
+  // Ask the backend for X3 prices (tariffs, discounts, free items) and X3 taxes for the whole cart,
+  // then fold the answer into the cart lines.
+  const applyPricing = async (updatedCart: CartItem[]) => {
+    if (updatedCart.length === 0) return;
+    const mappedRequests: PricingRequest[] = updatedCart.map((item: CartItem) => ({
+      item_code: item.item_code,
+      quantity: item.quantity.toString(),
+      customer_code: item.customer_code,
+      currency: selectedCurrencyCode,
+      unit_of_measure: item.product.unit_sales ?? "",
+    }));
+    const mappedTaxRequests = updatedCart.map((item: CartItem) => ({
+      item_code: item.item_code,
+      regime_taxe_tiers: selectTaxeCode,
+      site: selectedSitetCode,
+    }));
+    try {
+      const [pricingResponse, taxResponse] = await Promise.all([
+        fetchPricing(mappedRequests),
+        fetchAppliedTaxes(mappedTaxRequests),
+      ]);
+      const warnings = (taxResponse.data ?? []).filter((t: Tax) => t.warning);
+      if (warnings.length > 0) {
+        console.warn("[taxe]", warnings);
+      }
+      setCart((prevCart) =>
+        prevCart.map((cartItem) => {
+          const pricingData = pricingResponse.data?.find(
+            (priceItem: any) => priceItem.item_code === cartItem.item_code
+          );
+          const taxData = taxResponse.data?.find(
+            (taxItem: Tax) => taxItem.item_code === cartItem.item_code
+          );
+          const taxFactor = taxData ? 1 + (taxData.taux ?? 0) / 100 : 1;
+          const taxFields = taxData
+            ? { tax_code: taxData.code_taxe, tax_rate: taxData.taux, tax_warning: taxData.warning ?? null }
+            : {};
+
+          if (pricingData) {
+            const backendUnitPrice = pricingData.prix_net;
+            const backendTotalPrice = pricingData.total_HT;
+            const backendGrossPrice = pricingData.prix_brut;
+            const hasValidBackendPricing =
+              (backendUnitPrice && backendUnitPrice > 0) ||
+              (backendTotalPrice && backendTotalPrice > 0) ||
+              (backendGrossPrice && backendGrossPrice > 0);
+            const finalUnitPrice =
+              hasValidBackendPricing && backendUnitPrice > 0
+                ? backendUnitPrice
+                : cartItem.product.base_price;
+            const finalTotalPrice =
+              hasValidBackendPricing && backendTotalPrice > 0
+                ? backendTotalPrice
+                : finalUnitPrice * cartItem.quantity;
+            return {
+              ...cartItem,
+              ...taxFields,
+              unitpriceHT: finalUnitPrice,
+              unitPriceTTC: finalUnitPrice * taxFactor,
+              totalPrice: finalTotalPrice * taxFactor,
+              totalpriceHT: finalTotalPrice,
+              free_items: pricingData.gratuit,
+            };
+          }
+          // no tariff line: base price + tax
+          return {
+            ...cartItem,
+            ...taxFields,
+            unitPriceTTC: cartItem.unitpriceHT * taxFactor,
+            totalPrice: cartItem.totalpriceHT * taxFactor,
+          };
+        })
+      );
+    } catch (error) {
+      console.error("Error fetching pricing:", error);
+    }
+  };
+
   const addToCart = (product: Product) => {
     const quantity = productQuantities[product.item_code] || 1;
 
@@ -243,38 +382,55 @@ export default function POSApp() {
       [product.item_code]: true,
     }));
 
-    setCart((prev) => {
-      const existingItem = prev.find(
-        (item) => item.item_code === product.item_code
-      );
-      if (existingItem) {
-        return prev.map((item) =>
+    const existingItem = cart.find((item) => item.item_code === product.item_code);
+    const newCart: CartItem[] = existingItem
+      ? cart.map((item) =>
           item.item_code === product.item_code
             ? {
                 ...item,
                 customer_code: selectedClientCode,
                 quantity: item.quantity + quantity,
-                totalPrice: (item.quantity + quantity) * item.unitpriceHT,
+                totalPrice: (item.quantity + quantity) * item.unitPriceTTC,
                 totalpriceHT: (item.quantity + quantity) * item.unitpriceHT,
-                unitPriceTTC: item.unitpriceHT * 1, // Default, will be updated later
               }
             : item
-        );
-      }
-      return [
-        ...prev,
-        {
-          customer_code: selectedClientCode,
-          item_code: product.item_code,
-          product,
-          quantity,
-          unitPriceTTC: product.base_price * 1, // Default, will be updated later
-          unitpriceHT: product.base_price,
-          totalPrice: product.base_price * quantity,
-          totalpriceHT: product.base_price * quantity,
-        },
-      ];
-    });
+        )
+      : [
+          ...cart,
+          {
+            customer_code: selectedClientCode,
+            item_code: product.item_code,
+            product,
+            quantity,
+            unitPriceTTC: product.base_price, // refined by applyPricing
+            unitpriceHT: product.base_price,
+            totalPrice: product.base_price * quantity,
+            totalpriceHT: product.base_price * quantity,
+          },
+        ];
+    setCart(newCart);
+    applyPricing(newCart);
+  };
+
+  // Scanner input: the search box receives the barcode followed by Enter.
+  const handleScan = async (code: string) => {
+    const value = code.trim();
+    if (!value) return;
+    const local = products.find(
+      (p) => p.barcode === value || p.item_code.toUpperCase() === value.toUpperCase()
+    );
+    let product: Product | undefined = local;
+    if (!product && siteExoeditionCode) {
+      const response = await fetchArticleByBarcode(siteExoeditionCode, value);
+      if (response.success && response.data) product = response.data;
+    }
+    if (!product) {
+      toast.error(`Aucun article pour le code ${value}`);
+      return;
+    }
+    addToCart(product);
+    setSearchTerm("");
+    toast.success(`${product.describtion} ajouté au panier`);
   };
 
   const removeFromCart = (item_code: string) => {
@@ -302,91 +458,7 @@ export default function POSApp() {
 
     // Update the cart state with new quantity
     setCart(updatedCart);
-
-    // Create pricing requests using the updated cart
-    const mappedRequests: PricingRequest[] = updatedCart.map(
-      (item: CartItem) => ({
-        item_code: item.item_code,
-        quantity: item.quantity.toString(),
-        customer_code: item.customer_code,
-        currency: selectedCurrencyCode,
-        unit_of_measure: item.product.unit_sales ?? "",
-      })
-    );
-
-    const mappedTaxRequests = updatedCart.map((item: CartItem) => ({
-      item_code: item.item_code,
-      regime_taxe_tiers: selectTaxeCode,
-    }));
-
-    try {
-      console.log("Fetching taxes for:", mappedTaxRequests);
-      console.log("Fetching pricing for:", mappedRequests);
-
-      const pricingResponse = await fetchPricing(mappedRequests);
-      const taxResponse = await fetchAppliedTaxes(mappedTaxRequests);
-      console.log("Applied taxes response: ====>", taxResponse.data);
-      console.log("Pricing response: ====>", pricingResponse.data);
-
-      // Update cart with the pricing response
-      setCart((prevCart) =>
-        prevCart.map((cartItem) => {
-          // Find the corresponding pricing data for this cart item
-          const pricingData = pricingResponse.data?.find(
-            (priceItem: any) => priceItem.item_code === cartItem.item_code
-          );
-
-          const taxData = taxResponse.data?.find(
-            (taxItem: Tax) => taxItem.item_code === cartItem.item_code
-          );
-
-          if (pricingData) {
-            // Check if backend pricing is zero or null/undefined
-            const backendUnitPrice = pricingData.prix_net;
-            const backendTotalPrice = pricingData.total_HT;
-            const backendGrossPrice = pricingData.prix_brut;
-
-            // Check if all backend pricing values are zero or null/undefined
-            const hasValidBackendPricing =
-              (backendUnitPrice && backendUnitPrice > 0) ||
-              (backendTotalPrice && backendTotalPrice > 0) ||
-              (backendGrossPrice && backendGrossPrice > 0);
-
-            // Use backend pricing if any value is greater than 0, otherwise fallback to base price
-            const finalUnitPrice =
-              hasValidBackendPricing && backendUnitPrice > 0
-                ? backendUnitPrice
-                : cartItem.product.base_price;
-
-            const finalTotalPrice =
-              hasValidBackendPricing && backendTotalPrice > 0
-                ? backendTotalPrice
-                : finalUnitPrice * cartItem.quantity;
-
-            console.log(
-              `Item ${cartItem.item_code}: Backend prices - net: ${backendUnitPrice}, total: ${backendTotalPrice}, gross: ${backendGrossPrice}, Using unit price: ${finalUnitPrice}`
-            );
-
-            return {
-              ...cartItem,
-              unitpriceHT: finalUnitPrice,
-              unitPriceTTC:
-                finalUnitPrice * (taxData ? 1 + taxData.taux / 100 : 1),
-              totalPrice:
-                finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
-              totalpriceHT: finalTotalPrice,
-              free_items: pricingData.gratuit,
-            };
-          }
-
-          // If no pricing data found, keep existing prices
-          return cartItem;
-        })
-      );
-    } catch (error) {
-      console.error("Error fetching pricing:", error);
-      // Handle error appropriately - maybe show a toast notification
-    }
+    await applyPricing(updatedCart);
   };
 
   const updateProductQuantity = async (item_code: string, quantity: number) => {
@@ -435,108 +507,48 @@ export default function POSApp() {
           : item
       );
 
-      // Update the cart state withn new quantity
+      // Update the cart state with new quantity
       setCart(updatedCart);
-
-      // Create pricing requests using the updated cart
-      const mappedRequests = updatedCart.map((item: CartItem) => ({
-        item_code: item.item_code,
-        quantity: item.quantity.toString(),
-        customer_code: item.customer_code,
-        currency: selectedCurrencyCode,
-        unit_of_measure: item.product.unit_sales ?? "",
-      }));
-
-      const mappedTaxRequests = updatedCart.map((item: CartItem) => ({
-        item_code: item.item_code,
-        regime_taxe_tiers: selectTaxeCode,
-      }));
-
-      try {
-        console.log("Fetching pricing for:", mappedRequests);
-        const pricingResponse = await fetchPricing(mappedRequests);
-        const taxResponse = await fetchAppliedTaxes(mappedTaxRequests);
-        console.log("Applied taxes response: ====>", taxResponse.data);
-        console.log("Pricing response: ====>", pricingResponse.data);
-
-        // Update cart with the pricing response
-        setCart((prevCart) =>
-          prevCart.map((cartItem) => {
-            const pricingData = pricingResponse.data?.find(
-              (priceItem: any) => priceItem.item_code === cartItem.item_code
-            );
-
-            const taxData = taxResponse.data?.find(
-              (taxItem: Tax) => taxItem.item_code === cartItem.item_code
-            );
-
-            if (pricingData) {
-              const backendUnitPrice = pricingData.prix_net;
-              const backendTotalPrice = pricingData.total_HT;
-              const backendGrossPrice = pricingData.prix_brut;
-
-              const hasValidBackendPricing =
-                (backendUnitPrice && backendUnitPrice > 0) ||
-                (backendTotalPrice && backendTotalPrice > 0) ||
-                (backendGrossPrice && backendGrossPrice > 0);
-
-              const finalUnitPrice =
-                hasValidBackendPricing && backendUnitPrice > 0
-                  ? backendUnitPrice
-                  : cartItem.product.base_price;
-
-              const finalTotalPrice =
-                hasValidBackendPricing && backendTotalPrice > 0
-                  ? backendTotalPrice
-                  : finalUnitPrice * cartItem.quantity;
-
-              console.log(
-                `Item ${cartItem.item_code}: Backend prices - net: ${backendUnitPrice}, total: ${backendTotalPrice}, gross: ${backendGrossPrice}, Using unit price: ${finalUnitPrice}`
-              );
-
-              return {
-                ...cartItem,
-                unitpriceHT: finalUnitPrice,
-                unitPriceTTC:
-                  finalUnitPrice * (taxData ? 1 + taxData.taux / 100 : 1),
-                totalPrice:
-                  finalTotalPrice * (taxData ? 1 + taxData.taux / 100 : 1),
-                totalpriceHT: finalTotalPrice,
-              };
-            }
-
-            return cartItem;
-          })
-        );
-      } catch (error) {
-        console.error("Error fetching pricing:", error);
-      }
+      await applyPricing(updatedCart);
     }
   };
 
   const clearCart = () => {
     setCart([]);
+    pendingOrderRef.current = null;
     // Reset all product quantities to 0
     setProductQuantities({});
 
     // Hide all quantity controls
     setShowQuantityControls({});
     
+    // Reset payment forms
+    setPaymentMethodForm("none");
+    setDigitalPhone("");
+    setDigitalProvider("MOMO");
+    setCardReference("");
+    setCashReceived("");
   };
 
   const processTransaction = async (
     paymentMethod: "cash" | "card" | "digital"
   ) => {
     if (cart.length === 0) return;
+    if (!currentUser) return;
+    if (!cashSession) {
+      toast.error("Caisse fermée", { description: "Ouvrez la caisse avant d'enregistrer un paiement." });
+      setOpenCashDialog(true);
+      return;
+    }
 
     setIsProcessing(true);
 
     try {
-      // Simulate processing
-      // await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Reuse the order number if the order was already created on a previous attempt
+      const orderId = pendingOrderRef.current ?? `POS${selectedSitetCode}${Date.now()}`;
 
       const transaction: Transaction = {
-        id: `TXN-${Date.now()}`,
+        id: orderId,
         items: cart.map((item) => ({
           ...item,
           unitpriceHT: item.unitpriceHT || item.product.base_price,
@@ -554,13 +566,18 @@ export default function POSApp() {
         status: "completed" as const,
         customerCode: selectedClientCode,
         receiptData: {
-          storeName: "Your Store Name",
-          storeAddress: "Store Address Line 1\nStore Address Line 2",
-          storePhone: "Phone: +237 XXX XXX XXX",
-          cashierName: "Cashier Name",
-          terminalId: "TERM-001",
-          receiptNumber: `RCP-${Date.now()}`,
-          currency: getCurrencyByCode(selectedCurrencyCode)?.symbol || "$",
+          storeName: siteInfo?.name ?? selectedSitetCode,
+          storeAddress: siteInfo
+            ? [...siteInfo.address_lines, [siteInfo.postal_code, siteInfo.city].filter(Boolean).join(" "), siteInfo.country_name ?? siteInfo.country]
+                .filter(Boolean)
+                .join("\n")
+            : "",
+          storePhone: siteInfo?.phone ? `Tél. ${siteInfo.phone}` : "",
+          storeVatNumber: siteInfo?.vat_number ?? undefined,
+          cashierName: currentUser.name,
+          terminalId: selectedSitetCode,
+          receiptNumber: orderId,
+          currency: getCurrencyByCode(selectedCurrencyCode)?.symbol || "",
           valoTotalHT,
           valoTotalTTC: valoTotalTTc,
         },
@@ -579,29 +596,86 @@ export default function POSApp() {
         total_ht: transaction.subtotalHT,
         total_ttc: transaction.subtotal,
         valo_ht: transaction.totalHT,
-        valo_ttc: transaction.totalHT,
+        valo_ttc: transaction.total,
         price_type: 1,
         regime_taxe: selectTaxeCode,
-        comd_type: "SOH",
+        comd_type: selectedCommandType || "SON",
+        user_code: currentUser.code,
+        site_stock: siteExoeditionCode || selectedSitetCode,
         ligne: transaction.items?.map((item) => ({
           num_comd: transaction.id,
           item_code: item.item_code,
           quantity: item.quantity,
+          prix_brut: item.product.base_price,
           prix_net_ht: item.unitpriceHT,
           prix_net_ttc: item.unitPriceTTC,
           free_items: item.free_items,
+          description: item.product.describtion,
+          unit: item.product.unit_sales,
+          tax_code: item.tax_code,
         })),
       };
 
       console.log("Request data for order creation:", request_data);
 
-      // Simulate saving to the database
-      const response_order = await createSalseOrder(request_data);
+      // 1) Write the order (SORDER) unless it already exists from a failed attempt
+      if (!pendingOrderRef.current) {
+        const response_order = await createSalseOrder(request_data);
+        console.log("Log[0] ====> ", response_order);
+        if (!response_order.success) {
+          setIsProcessing(false);
+          return;
+        }
+        pendingOrderRef.current = orderId;
+      }
 
-      console.log("Log[0] ====> ", response_order);
+      // 2) Register the payment the customer already made
+      const paymentResponse = await processPayment({
+        orderId,
+        amount: valoTotalTTc,
+        method: paymentMethod,
+        currency: selectedCurrencyCode,
+        customerCode: selectedClientCode,
+        userCode: currentUser.code,
+        site: selectedSitetCode,
+        ...(paymentMethod === "cash" && cashReceived
+          ? { amountTendered: Number(cashReceived) }
+          : {}),
+        ...(paymentMethod === "card" && cardReference
+          ? { reference: cardReference }
+          : {}),
+        ...(paymentMethod === "digital"
+          ? { phone: digitalPhone, provider: digitalProvider as "MOMO" | "OM" }
+          : {}),
+      });
+
+      if (!paymentResponse.success || !paymentResponse.data) {
+        toast.error("Paiement non enregistré", {
+          description: `${paymentResponse.error ?? "Erreur inconnue"} — commande ${orderId}. Corrigez et confirmez à nouveau.`,
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      const payment = paymentResponse.data;
+      transaction.receiptData = {
+        ...transaction.receiptData!,
+        receiptNumber: payment.transactionId,
+        change: payment.change ?? undefined,
+        amountTendered: payment.amountTendered ?? undefined,
+        paymentReference: payment.reference ?? payment.phone ?? undefined,
+      };
+      pendingOrderRef.current = null;
+      refreshCashSession(selectedSitetCode || undefined);
+
+      toast.success("Paiement enregistré", {
+        description: `${payment.transactionId} · ${getCurrencyByCode(selectedCurrencyCode)?.symbol ?? ""}${payment.amount.toFixed(2)}${
+          payment.change ? ` · monnaie ${payment.change.toFixed(2)}` : ""
+        }`,
+      });
 
       // Add to transaction history
-      setTransactionHistory((prev) => [transaction, ...prev]);
+      setTransactionHistory((prev) => [toHistoryEntry(payment), ...prev]);
 
       // Clear cart and reset product quantities/controls
       clearCart(); // This now handles both cart and product quantity reset
@@ -613,9 +687,30 @@ export default function POSApp() {
       setIsProcessing(false);
     } catch (error) {
       console.error("Transaction failed:", error);
+      toast.error("La transaction a échoué", {
+        description:
+          error instanceof Error ? error.message : "Erreur inconnue",
+      });
       setIsProcessing(false);
     }
   };
+
+  // Store identity for receipts and the open cash session follow the sales site
+  useEffect(() => {
+    loadSiteInfo(selectedSitetCode || undefined);
+    refreshCashSession(selectedSitetCode || undefined);
+  }, [selectedSitetCode, loadSiteInfo, refreshCashSession]);
+
+  // Today's registered payments survive a reload / app restart
+  useEffect(() => {
+    const loadTodaysPayments = async () => {
+      const response = await fetchPayments({ day: todayIso() });
+      if (response.success && response.data) {
+        setTransactionHistory(response.data.map(toHistoryEntry));
+      }
+    };
+    loadTodaysPayments();
+  }, []);
 
 
   useEffect(() => {
@@ -651,9 +746,11 @@ export default function POSApp() {
       setElementFacts(response.data || []);
       console.log("Element facturation", response);
     };
-    loadElementFacturation();
-    loadInitialData();
-    loadingCurrency();
+    if (siteExoeditionCode) loadInitialData();
+    if (selectedClientCode) {
+      loadElementFacturation();
+      loadingCurrency();
+    }
   }, [siteExoeditionCode, selectedClientCode]);
 
   const applyElementFact = (montant: number) => {
@@ -709,6 +806,7 @@ export default function POSApp() {
   const valoTotalTTc = applyElementFact(subtotalTTC);
 
   useEffect(() => {
+    if (!selectedClientCode) return;
     const loadingTaxe = async () => {
       try {
         const response = await fetchTaxRegimes(selectedClientCode);
@@ -757,8 +855,13 @@ export default function POSApp() {
   const renderCurrentView = () => {
     switch (currentView) {
       case "livraison":
-      // return <Livraison />;
-        return <Livraison2 />
+        return <Livraison2 />;
+      case "cash":
+        return <CashSessionView site={selectedSitetCode} currency={selectedCurrencyCode || siteInfo?.currency || undefined} />;
+      case "customers":
+        return <CustomersContent onSelectForSale={() => setCurrentView("pos")} />;
+      case "inventory":
+        return <InventoryContent site={siteExoeditionCode || selectedSitetCode} />;
       case "history":
         return (
           <div className="space-y-6">
@@ -787,15 +890,29 @@ export default function POSApp() {
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="font-medium">
-                              Transaction #{transaction.id.slice(-6)}
+                              {transaction.id}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {transaction.timestamp.toLocaleString()}
+                              {transaction.timestamp.toLocaleString()} · Commande{" "}
+                              {transaction.orderId}
                             </div>
+                            {(transaction.reference ||
+                              transaction.provider ||
+                              transaction.change != null) && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {transaction.provider &&
+                                  `${transaction.provider} ${transaction.phone ?? ""} `}
+                                {transaction.reference &&
+                                  `Réf. ${transaction.reference} `}
+                                {transaction.change != null &&
+                                  `Monnaie ${transaction.change.toFixed(2)}`}
+                              </div>
+                            )}
                           </div>
                           <div className="text-right">
                             <div className="font-bold text-green-600">
-                              ${transaction.total?.toFixed(2)}
+                              {getCurrencyByCode(transaction.currency ?? selectedCurrencyCode)?.symbol ?? ""}
+                              {transaction.total?.toFixed(2)}
                             </div>
                             <Badge variant="outline">
                               {transaction.paymentMethod}
@@ -811,11 +928,11 @@ export default function POSApp() {
           </div>
         );
       case "settings":
-        return <SettingsForm />;
+        return <SettingsForm site={selectedSitetCode} />;
       case "reports":
-        return <ReportsContent />;
+        return <ReportsContent site={selectedSitetCode || undefined} currency={selectedCurrencyCode || siteInfo?.currency || undefined} />;
       case "receipts":
-        return <ReceiptsContent />;
+        return <ReceiptsContent site={selectedSitetCode || undefined} />;
       default:
         return (
           <div className="space-y-6">
@@ -873,9 +990,15 @@ export default function POSApp() {
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search products or scan barcode..."
+                      placeholder="Rechercher un article ou scanner un code-barres…"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleScan(searchTerm);
+                        }
+                      }}
                       className="pl-10 transition-all duration-200 focus:ring-2"
                     />
                   </div>
@@ -1093,16 +1216,27 @@ export default function POSApp() {
     }
   };
 
+  if (!currentUser) {
+    return <LoginScreen />;
+  }
+
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar
         currentView={currentView}
         onViewChange={setCurrentView}
         transactionHistory={transactionHistory}
-        cashDrawerOpen={cashDrawerOpen}
-        onToggleCashDrawer={() => setCashDrawerOpen(!cashDrawerOpen)}
-        cashDrawerAmount={cashDrawerAmount}
+        onOpenCash={() => setOpenCashDialog(true)}
+        onCloseCash={() => setCloseCashDialog(true)}
+        currency={selectedCurrencyCode || siteInfo?.currency || undefined}
       />
+      <OpenCashDialog
+        open={openCashDialog}
+        onOpenChange={setOpenCashDialog}
+        site={selectedSitetCode}
+        currency={selectedCurrencyCode || siteInfo?.currency || undefined}
+      />
+      <CloseCashDialog open={closeCashDialog} onOpenChange={setCloseCashDialog} session={cashSession} />
 
       <div className="flex-1 p-4 lg:p-6">
         <div className="max-w-7xl mx-auto">
@@ -1111,6 +1245,8 @@ export default function POSApp() {
               <h1 className="text-3xl font-bold text-foreground">
                 {currentView === "pos"
                   ? "Point de vente"
+                  : currentView === "cash"
+                  ? "Caisse"
                   : currentView === "livraison"
                   ? "Gestion des Livraisons"
                   : currentView === "history"
@@ -1175,7 +1311,9 @@ export default function POSApp() {
             <div className="flex items-center justify-between flex-1">
               <p className="text-muted-foreground">
                 {currentView === "pos"
-                  ? "Point de vente"
+                  ? `${siteInfo?.name ?? selectedSitetCode}${currentUser ? ` · ${currentUser.name}` : ""}`
+                  : currentView === "cash"
+                  ? "Ouverture, fermeture, apports et retraits d'espèces"
                   : currentView === "livraison"
                   ? "Gérez vos livraisons"
                   : currentView === "history"
@@ -1414,55 +1552,159 @@ export default function POSApp() {
                       </div>
                     </div>
 
-                    {/* Payment buttons */}
+                    {/* Payment buttons and forms */}
                     <div className="space-y-2 pt-4">
-                      <Button
-                        className="w-full transition-all duration-200 hover:scale-105"
-                        size="lg"
-                        onClick={() => processTransaction("card")}
-                        disabled={isProcessing}
-                      >
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        {isProcessing ? (
-                          <>
-                            <SwirlingEffectSpinner />
-                            Processing...
-                          </>
-                        ) : (
-                          "Pay with Card"
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full bg-transparent transition-all duration-200 hover:scale-105"
-                        size="lg"
-                        onClick={() => processTransaction("cash")}
-                        disabled={isProcessing}
-                      >
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        Pay with Cash
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full bg-transparent transition-all duration-200 hover:scale-105"
-                        size="lg"
-                        onClick={() => processTransaction("digital")}
-                        disabled={isProcessing}
-                      >
-                        <Smartphone className="h-4 w-4 mr-2" />
-                        Digital Payment
-                      </Button>
+                      {paymentMethodForm === "none" && (
+                        <>
+                          <Button
+                            className="w-full transition-all duration-200 hover:scale-105"
+                            size="lg"
+                            onClick={() => setPaymentMethodForm("card")}
+                            disabled={isProcessing}
+                          >
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            {isProcessing ? (
+                              <>
+                                <SwirlingEffectSpinner />
+                                Processing...
+                              </>
+                            ) : (
+                              "Pay with Card"
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full bg-transparent transition-all duration-200 hover:scale-105"
+                            size="lg"
+                            onClick={() => setPaymentMethodForm("cash")}
+                            disabled={isProcessing}
+                          >
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            Pay with Cash
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full bg-transparent transition-all duration-200 hover:scale-105"
+                            size="lg"
+                            onClick={() => setPaymentMethodForm("digital")}
+                            disabled={isProcessing}
+                          >
+                            <Smartphone className="h-4 w-4 mr-2" />
+                            Digital Payment
+                          </Button>
 
-                      {cart.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          className="w-full transition-all duration-200 hover:scale-105"
-                          size="sm"
-                          onClick={clearCart}
-                          disabled={isProcessing}
-                        >
-                          Clear Cart
-                        </Button>
+                          {cart.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              className="w-full transition-all duration-200 hover:scale-105"
+                              size="sm"
+                              onClick={clearCart}
+                              disabled={isProcessing}
+                            >
+                              Clear Cart
+                            </Button>
+                          )}
+                        </>
+                      )}
+
+                      {paymentMethodForm === "digital" && (
+                        <div className="space-y-4 p-4 border rounded-lg bg-background">
+                          <h4 className="font-semibold text-mg flex items-center"><Smartphone className="h-4 w-4 mr-2"/> Digital Payment</h4>
+                          <div className="space-y-2">
+                            <Label>Provider</Label>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant={digitalProvider === "MOMO" ? "default" : "outline"} 
+                                onClick={() => setDigitalProvider("MOMO")}
+                                className="flex-1"
+                              >
+                                MTN MoMo
+                              </Button>
+                              <Button 
+                                variant={digitalProvider === "OM" ? "default" : "outline"} 
+                                onClick={() => setDigitalProvider("OM")}
+                                className="flex-1"
+                              >
+                                Orange Money
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Phone Number</Label>
+                            <Input 
+                              type="tel" 
+                              placeholder="+237 XXX XXX XXX" 
+                              value={digitalPhone} 
+                              onChange={(e) => setDigitalPhone(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex gap-2 font-bold text-lg">
+                            <span>Amount to Pay:</span>
+                            <span className="text-primary">{getCurrencyByCode(selectedCurrencyCode)?.symbol}{(valoTotalTTc)?.toFixed(2)}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setPaymentMethodForm("none")} className="flex-1">Back</Button>
+                            <Button onClick={() => processTransaction("digital")} disabled={isProcessing || !digitalPhone} className="flex-1">
+                              {isProcessing ? "Processing..." : "Confirm"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {paymentMethodForm === "card" && (
+                        <div className="space-y-4 p-4 border rounded-lg bg-background">
+                          <h4 className="font-semibold text-mg flex items-center"><CreditCard className="h-4 w-4 mr-2"/> Card Payment</h4>
+                          <div className="space-y-2">
+                            <Label>Approval / Reference Number (Optional)</Label>
+                            <Input 
+                              type="text" 
+                              placeholder="Terminal Receipt Ref..." 
+                              value={cardReference} 
+                              onChange={(e) => setCardReference(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex gap-2 font-bold text-lg">
+                            <span>Amount to Pay:</span>
+                            <span className="text-primary">{getCurrencyByCode(selectedCurrencyCode)?.symbol}{(valoTotalTTc)?.toFixed(2)}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setPaymentMethodForm("none")} className="flex-1">Back</Button>
+                            <Button onClick={() => processTransaction("card")} disabled={isProcessing} className="flex-1">
+                              {isProcessing ? "Processing..." : "Confirm"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {paymentMethodForm === "cash" && (
+                        <div className="space-y-4 p-4 border rounded-lg bg-background">
+                          <h4 className="font-semibold text-mg flex items-center"><DollarSign className="h-4 w-4 mr-2"/> Cash Payment</h4>
+                          <div className="space-y-2">
+                            <Label>Amount Received</Label>
+                            <Input 
+                              type="number" 
+                              placeholder="0.00" 
+                              value={cashReceived} 
+                              onChange={(e) => setCashReceived(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex justify-between font-bold text-lg">
+                            <span>Amount to Pay:</span>
+                            <span className="text-primary">{getCurrencyByCode(selectedCurrencyCode)?.symbol}{(valoTotalTTc)?.toFixed(2)}</span>
+                          </div>
+                          {Number(cashReceived) >= valoTotalTTc && (
+                            <div className="flex justify-between font-bold text-lg text-green-600">
+                              <span>Change Due:</span>
+                              <span>{getCurrencyByCode(selectedCurrencyCode)?.symbol}{(Number(cashReceived) - valoTotalTTc).toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setPaymentMethodForm("none")} className="flex-1">Back</Button>
+                            <Button onClick={() => processTransaction("cash")} disabled={isProcessing || (cashReceived ? Number(cashReceived) < valoTotalTTc : false)} className="flex-1">
+                              {isProcessing ? "Processing..." : "Confirm"}
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </>
